@@ -2,9 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('./user.controller');
+const { verifyFirebaseToken } = require('../../middleware/auth.middleware');
 
-router.post('/register', userController.registerUser);
-router.get('/:mobile', userController.getUser);
-router.put('/status', userController.updateStatus);
+router.get('/me', verifyFirebaseToken, userController.getProfile);
+router.put('/online', verifyFirebaseToken, userController.setOnline);
+router.put('/offline', verifyFirebaseToken, userController.setOffline);
 
 module.exports = router;

@@ -1,25 +1,31 @@
 // user.service.js
 const User = require('./user.model');
 
-exports.createUser = async (data) => {
-    const existingUser = await User.findOne({ mobile: data.mobile });
+exports.findOrCreateUser = async ({ uid, mobile, name }) => {
+    let user = await User.findOne({ uid });
 
-    if (existingUser) {
-        throw new Error('User already exists');
+    if (!user) {
+        user = await User.create({
+            uid,
+            mobile,
+            name: name || ''
+        });
     }
 
-    const user = new User(data);
-    return await user.save();
+    return user;
 };
 
-exports.getUserByMobile = async (mobile) => {
-    return await User.findOne({ mobile });
-};
-
-exports.setUserOnlineStatus = async (mobile, status) => {
+exports.updateOnlineStatus = async (uid, status) => {
     return await User.findOneAndUpdate(
-        { mobile },
-        { isOnline: status },
+        { uid },
+        {
+            isOnline: status,
+            lastSeen: status ? null : new Date()
+        },
         { new: true }
     );
+};
+
+exports.getUserById = async (uid) => {
+    return await User.findOne({ uid });
 };

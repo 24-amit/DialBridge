@@ -2,25 +2,28 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    name: {
+    uid: {
         type: String,
         required: true,
-        trim: true
+        unique: true
+    },
+    name: {
+        type: String,
+        default: ''
     },
     mobile: {
         type: String,
         required: true,
-        unique: true,
-        match: /^[0-9]{10}$/
+        unique: true
     },
     isOnline: {
         type: Boolean,
         default: false
     },
-    createdAt: {
+    lastSeen: {
         type: Date,
-        default: Date.now
+        default: null
     }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

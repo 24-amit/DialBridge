@@ -2,11 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('./auth.controller');
+const { verifyFirebaseToken } = require('../../middleware/auth.middleware');
 
-// Step 1: Send OTP
-router.post('/send-otp', authController.sendOTP);
-
-// Step 2: Verify OTP
-router.post('/verify-otp', authController.verifyOTP);
+router.post('/login', verifyFirebaseToken, authController.firebaseLogin);
 
 module.exports = router;

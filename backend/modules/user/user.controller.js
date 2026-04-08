@@ -1,30 +1,27 @@
 // user.controller.js
 const userService = require('./user.service');
 
-exports.registerUser = async (req, res) => {
+exports.getProfile = async (req, res) => {
     try {
-        const user = await userService.createUser(req.body);
-        res.status(201).json(user);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-};
-
-exports.getUser = async (req, res) => {
-    try {
-        const user = await userService.getUserByMobile(req.params.mobile);
+        const user = await userService.getUserById(req.user.uid);
         res.json(user);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-exports.updateStatus = async (req, res) => {
+exports.setOnline = async (req, res) => {
     try {
-        const user = await userService.setUserOnlineStatus(
-            req.body.mobile,
-            req.body.isOnline
-        );
+        const user = await userService.updateOnlineStatus(req.user.uid, true);
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.setOffline = async (req, res) => {
+    try {
+        const user = await userService.updateOnlineStatus(req.user.uid, false);
         res.json(user);
     } catch (error) {
         res.status(500).json({ message: error.message });
