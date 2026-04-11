@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DialBridge</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            overflow: hidden;
+        }
+
+        /* LOGIN */
+        #login {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .success {
+            color: green;
+            margin-top: 10px;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+
+        /* APP */
+        #app {
+            display: none;
+            height: 100vh;
+        }
+
+        /* FIXED LAYOUT */
+        .container {
+            display: flex;
+            height: 100%;
+        }
+
+        /* SIDEBAR (make it smaller + clean) */
+        .sidebar {
+            width: 220px;
+            background: #1e293b;
+            padding: 20px;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        /* MAIN AREA (center properly) */
+        .main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* CARD */
+        .card {
+            background: #f1f5f9;
+            padding: 25px;
+            border-radius: 20px;
+            width: 300px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        /* NUMBER DISPLAY */
+        .display {
+            font-size: 26px;
+            margin-bottom: 20px;
+            min-height: 30px;
+            font-weight: bold;
+        }
+
+        /* KEYPAD */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 70px);
+            gap: 15px;
+            justify-content: center;
+        }
+
+        /* KEYS */
+        .key {
+            width: 70px;
+            height: 70px;
+            background: #cbd5e1;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .key:hover {
+            background: #94a3b8;
+        }
+
+        /* CALL BUTTON */
+        .call-btn {
+            margin-top: 20px;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* CALL SCREEN */
+        .call-screen {
+            display: none;
+        }
+
+        /* Call Actions */
+        .call-actions {
+            margin-top: 20px;
+        }
+
+        .btn {
+            margin: 10px;
+            padding: 12px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+
+        .mute {
+            background: gray;
+            color: white;
+        }
+
+        .speaker {
+            background: blue;
+            color: white;
+        }
+
+        .end {
+            background: red;
+            color: white;
+        }
+
+        /* Incoming Call */
+        .incoming-box {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e293b;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .incoming-actions {
+            margin-top: 10px;
+        }
+
+        .accept {
+            background: green;
+            color: white;
+            padding: 10px;
+            border: none;
+            margin-right: 10px;
+        }
+
+        .reject {
+            background: red;
+            color: white;
+            padding: 10px;
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LOGIN -->
+    <div id="login">
+        <h2>Phone Login</h2>
+
+        <div class="login-box">
+            <input id="phone" placeholder="Enter phone number (+91...)" />
+            <button onclick="sendOTP()">Send OTP</button>
+        </div>
+
+        <div id="otpBox" class="hidden">
+            <input type="text" id="otp" placeholder="Enter OTP" />
+            <button onclick="verifyOTP()">Verify OTP</button>
+        </div>
+
+        <div id="recaptcha-container"></div>
+
+        <p id="msg"></p>
+    </div>
+
+    <!-- APP -->
+    <div id="app">
+        <div class="container">
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <h2>DialBridge</h2>
+                <p id="userLabel"></p>
+            </div>
+
+            <!-- Main -->
+            <div class="main">
+
+                <!-- Dialer -->
+                <div id="dialer" class="card">
+                    <div id="number" class="display"></div>
+
+                    <div class="keypad">
+                        <div class="key" onclick="press('1')">1</div>
+                        <div class="key" onclick="press('2')">2</div>
+                        <div class="key" onclick="press('3')">3</div>
+                        <div class="key" onclick="press('4')">4</div>
+                        <div class="key" onclick="press('5')">5</div>
+                        <div class="key" onclick="press('6')">6</div>
+                        <div class="key" onclick="press('7')">7</div>
+                        <div class="key" onclick="press('8')">8</div>
+                        <div class="key" onclick="press('9')">9</div>
+                        <div class="key" onclick="press('*')">*</div>
+                        <div class="key" onclick="press('0')">0</div>
+                        <div class="key" onclick="press('#')">#</div>
+                    </div>
+
+                    <button class="call-btn" onclick="makeCall()">📞 Call</button>
+                </div>
+
+                <!-- Call Screen -->
+                <div id="callScreen" class="card call-screen">
+                    <h2 id="callUser"></h2>
+                    <p id="status">Calling...</p>
+
+                    <div class="call-actions">
+                        <button class="btn mute">Mute</button>
+                        <button class="btn speaker">Speaker</button>
+                        <button class="btn end" onclick="endCall()">End</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Incoming -->
+        <div id="incoming" class="incoming-box">
+            <p id="incomingNum"></p>
+            <div class="incoming-actions">
+                <button class="accept" onclick="acceptCall()">Accept</button>
+                <button class="reject" onclick="rejectCall()">Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+        // Your Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAoA3skXYt00nNcV1efQx6aHtZtAhZ5ZqI",
+            authDomain: "dialbridge-972c9.firebaseapp.com",
+            projectId: "dialbridge-972c9",
+            appId: "1:112453752302:web:180ceeb4b00997cfa7eaff"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        auth.settings.appVerificationDisabledForTesting = true;
+
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'invisible'
+        });
+
+        let confirmationResult;
+        let socket;
+        let myNumber;
+        let number = "";
+        let currentCallUser;
+
+        // LOGIN
+        window.sendOTP = async () => {
+            const phone = document.getElementById('phone').value;
+            const message = document.getElementById('msg');
+
+            try {
+                confirmationResult = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
+
+                // Hide phone input
+                document.querySelector('.login-box').classList.add('hidden');
+
+                // Show OTP input
+                document.getElementById('otpBox').classList.remove('hidden');
+
+                message.innerText = "OTP sent successfully";
+                message.className = "success";
+            } catch (error) {
+                message.innerText = error.message;
+                message.className = "error";
+            }
+        };
+
+        window.verifyOTP = async () => {
+            const otp = document.getElementById('otp').value;
+            const message = document.getElementById('msg');
+
+            try {
+                const result = await confirmationResult.confirm(otp);
+
+                myNumber = result.user.phoneNumber;
+                localStorage.setItem("userNumber", myNumber);
+
+                message.innerText = "Login Successful";
+                message.className = "success";
+
+                // small delay so user actually sees message
+                setTimeout(() => {
+                    startApp();
+                }, 500);
+            } catch (error) {
+                message.innerText = "Invalid OTP";
+                message.className = "error";
+            }
+        };
+
+        // START APP
+        function startApp() {
+            document.getElementById("userLabel").innerText = "You: " + myNumber;
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+
+            socket = io("http://localhost:5000", {
+                query: { userId: myNumber }
+            });
+
+            socket.on("connect", () => {
+                console.log("Connected:", socket.id);
+                socket.emit("register", myNumber);
+            });
+
+            setupSocketEvents();
+        }
+
+        // SOCKET EVENTS
+        function setupSocketEvents() {
+
+            socket.on("incoming-call", (data) => {
+                document.getElementById('incoming').style.display = 'block';
+                document.getElementById('incomingNum').innerText = data.from;
+                window.caller = data.from;
+            });
+
+            socket.on("call-accepted", () => {
+                document.getElementById('status').innerText = "Connected";
+            });
+
+            socket.on("call-rejected", () => {
+                alert("Rejected");
+                resetUI();
+            });
+
+            socket.on("call-ended", () => {
+                alert("Ended");
+                resetUI();
+            });
+        }
+
+        // DIALER
+        window.press = (n) => {
+            number += n;
+            document.getElementById('number').innerText = number;
+        };
+
+        window.makeCall = () => {
+            if (!number) return;
+
+            currentCallUser = number;
+
+            socket.emit("call-user", {
+                to: number,
+                from: myNumber
+            });
+
+            document.getElementById('dialer').style.display = 'none';
+            document.getElementById('callScreen').style.display = 'block';
+            document.getElementById('callUser').innerText = number;
+        };
+
+        window.acceptCall = () => {
+            currentCallUser = window.caller;
+
+            socket.emit("call-accepted", {
+                to: window.caller,
+                from: myNumber
+            });
+
+            document.getElementById('incoming').style.display = 'none';
+        };
+
+        window.rejectCall = () => {
+            socket.emit("call-rejected", {
+                to: window.caller,
+                from: myNumber
+            });
+
+            document.getElementById('incoming').style.display = 'none';
+        };
+
+        window.endCall = () => {
+            socket.emit("end-call", {
+                to: currentCallUser,
+                from: myNumber
+            });
+
+            resetUI();
+        };
+
+        function resetUI() {
+            document.getElementById('dialer').style.display = 'block';
+            document.getElementById('callScreen').style.display = 'none';
+            number = "";
+        }
+    </script>
+
+</body>
+
+</html>

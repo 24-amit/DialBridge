@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phone Login</title>
+    <title>DialBridge</title>
 
     <style>
         body {
@@ -111,7 +111,11 @@
         <p id="message"></p>
     </div>
 
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
     <script type="module">
+        // Only ONE socket instance
+        const socket = io("http://localhost:5000");
 
         // Import Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -141,8 +145,10 @@
 
             try {
                 confirmationResult = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
+
                 document.getElementById('phone-section').classList.add('hidden');
                 document.getElementById('otp-section').classList.remove('hidden');
+
                 message.innerText = "OTP sent successfully";
                 message.className = "success";
             } catch (error) {
@@ -157,16 +163,24 @@
 
             try {
                 const result = await confirmationResult.confirm(otp);
+
                 const token = await result.user.getIdToken();
+                const userId = result.user.uid;
+
+                // STORE USER ID
+                localStorage.setItem("userId", userId);
 
                 // Send token to backend
-                await fetch('http://localhost:5000/api/auth/firebase-login', {
+                await fetch('http://localhost:5000/api/auth/login', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ token })
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
+
+                // Register user to socket AFTER login
+                socket.emit("register", userId);
 
                 message.innerText = "Login Successful";
                 message.className = "success";
@@ -176,6 +190,14 @@
             }
         }
 
+        // Clean connection logging
+        socket.on("connect", () => {
+            console.log("Socket Connected:", socket.id);
+        });
+
+        socket.on("disconnect", () => {
+            console.log("Socket Disconnected");
+        });
     </script>
 
 </body>

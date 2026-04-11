@@ -20,6 +20,8 @@ exports.verifyFirebaseToken = async (req, res, next) => {
 
         next();
     } catch (err) {
+        console.error("Auth Error:", err);
+        res.status(500).json({ message: 'Internal error', error: err.message });
         res.status(401).json({ message: 'Invalid token' });
     }
 };
