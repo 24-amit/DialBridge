@@ -27,10 +27,10 @@ const authRoutes = require('./modules/auth/auth.routes');
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 
-app.use(express.static(path.join(__dirname, "frontend")));
+app.use(express.static(path.join(__dirname, "../frontend")));
 
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "frontend/index.html"));
+    res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
 app.get('/api/turn-credentials', async (req, res) => {
