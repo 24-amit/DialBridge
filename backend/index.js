@@ -44,7 +44,7 @@ app.get('/api/turn-credentials', async (req, res) => {
 // attach socket.io
 const io = new Server(server, {
     cors: {
-        origin: "http://dialbridge.onrender.com",
+        origin: "https://dialbridge.onrender.com",
         methods: ["GET", "POST"]
     }
 });
