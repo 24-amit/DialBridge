@@ -8,7 +8,10 @@ const client = twilio("AC68c0133bddfe9e4e00e9e7f64ecd558d", "ea6c80704070c589a3a
 
 const app = express();
 // enable CORS
-app.use(cors());
+app.use(cors({
+    origin: ["https://127.0.0.1:5500.vercel.app"],
+    credentials: true
+}));
 
 // middleware
 app.use(express.json());
@@ -23,8 +26,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 
 app.get('/api/turn-credentials', async (req, res) => {
-    // const token = await client.tokens.create();
-    // res.json(token.iceServers);
     res.json([
         {
             urls: "stun:stun.l.google.com:19302"
