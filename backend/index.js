@@ -4,6 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const twilio = require('twilio');
 const PORT = process.env.PORT || 5000;
+const path = require("path");
 
 const client = twilio("AC68c0133bddfe9e4e00e9e7f64ecd558d", "ea6c80704070c589a3a6c451181fe660");
 
@@ -26,8 +27,10 @@ const authRoutes = require('./modules/auth/auth.routes');
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 
+app.use(express.static(path.join(__dirname, "frontend")));
+
 app.get("/", (req, res) => {
-    res.send("DialBridge Backend is running 🚀");
+    res.sendFile(path.join(__dirname, "frontend/index.html"));
 });
 
 app.get('/api/turn-credentials', async (req, res) => {
