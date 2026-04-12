@@ -760,7 +760,7 @@
         let remoteAudio = document.getElementById("remoteAudio");
 
         async function startWebRTC(isCaller) {
-            const response = await fetch('http://localhost:5000/api/turn-credentials');
+            const response = await fetch('https://dialbridge.onrender.com/api/turn-credentials');
 
             if (!response.ok) {
                 throw new Error("Failed to fetch TURN credentials");
