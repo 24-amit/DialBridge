@@ -3,6 +3,7 @@ const cors = require('cors');
 const http = require("http");
 const { Server } = require("socket.io");
 const twilio = require('twilio');
+const PORT = process.env.PORT || 5000;
 
 const client = twilio("AC68c0133bddfe9e4e00e9e7f64ecd558d", "ea6c80704070c589a3a6c451181fe660");
 
@@ -41,7 +42,7 @@ const io = new Server(server, {
 });
 
 // start server
-server.listen(5000, () => {
+server.listen(PORT, () => {
     console.log('Server running on port 5000');
 });
 
