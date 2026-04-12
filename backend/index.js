@@ -11,7 +11,7 @@ const client = twilio("AC68c0133bddfe9e4e00e9e7f64ecd558d", "ea6c80704070c589a3a
 const app = express();
 // enable CORS
 app.use(cors({
-    origin: ["https://127.0.0.1:5500.vercel.app"],
+    origin: ["https://dialbridge.onrender.com"],
     credentials: true
 }));
 
@@ -44,7 +44,8 @@ app.get('/api/turn-credentials', async (req, res) => {
 // attach socket.io
 const io = new Server(server, {
     cors: {
-        origin: "http://127.0.0.1:5500"
+        origin: "http://dialbridge.onrender.com",
+        methods: ["GET", "POST"]
     }
 });
 

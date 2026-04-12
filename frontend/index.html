@@ -557,7 +557,7 @@
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
 
-            socket = io("http://localhost:5000", {
+            socket = io("http://dialbridge.onrender.com", {
                 query: { userId: myNumber }
             });
 
