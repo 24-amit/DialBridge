@@ -450,7 +450,6 @@
         import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // Your Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyAoA3skXYt00nNcV1efQx6aHtZtAhZ5ZqI",
             authDomain: "dialbridge-972c9.firebaseapp.com",
@@ -460,149 +459,53 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        auth.settings.appVerificationDisabledForTesting = true;
         const db = getFirestore(app);
 
-        window.db = db;
-        window.collection = collection;
-        window.addDoc = addDoc;
-        window.getDocs = getDocs;
-        window.query = query;
-        window.where = where;
-
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            size: 'invisible'
-        });
-
-        let confirmationResult;
         let socket;
         let myNumber;
-        let number = "";
         let currentCallUser;
-        let callTimerInterval;
-        let callSeconds = 0;
 
-        async function loadCallHistory(userNumber) {
-            const q1 = query(collection(db, "call_logs"), where("caller", "==", userNumber));
-            const q2 = query(collection(db, "call_logs"), where("receiver", "==", userNumber));
+        let peer;
+        let localStream;
+        let iceQueue = [];
+        let isRemoteSet = false;
 
-            const snap1 = await getDocs(q1);
-            const snap2 = await getDocs(q2);
-
-            let historyHTML = "";
-
-            snap1.forEach(doc => {
-                const data = doc.data();
-                historyHTML += `<div>${data.receiver} (${data.duration}s)</div>`;
-            });
-
-            snap2.forEach(doc => {
-                const data = doc.data();
-                historyHTML += `<div>${data.caller} (${data.duration}s)</div>`;
-            });
-
-            document.getElementById("historyList").innerHTML = historyHTML;
-        }
-
-        // LOGIN
-        window.sendOTP = async () => {
-            const phone = document.getElementById('phone').value;
-            const message = document.getElementById('msg');
-
-            try {
-                confirmationResult = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
-
-                // Hide phone input
-                document.querySelector('.login-box').classList.add('hidden');
-
-                // Show OTP input
-                document.getElementById('otpBox').classList.remove('hidden');
-
-                message.innerText = "OTP sent successfully";
-                message.className = "success";
-            } catch (error) {
-                message.innerText = error.message;
-                message.className = "error";
+        // 🔥 TURN + STUN (FINAL CONFIG)
+        const ICE_SERVERS = [
+            { urls: "stun:stun.l.google.com:19302" },
+            {
+                urls: "turn:openrelay.metered.ca:80",
+                username: "openrelayproject",
+                credential: "openrelayproject"
             }
-        };
+        ];
 
-        window.verifyOTP = async () => {
-            const otp = document.getElementById('otp').value;
-            const message = document.getElementById('msg');
-
-            try {
-                const result = await confirmationResult.confirm(otp);
-
-                myNumber = result.user.phoneNumber;
-                localStorage.setItem("userNumber", myNumber);
-
-                message.innerText = "Login Successful";
-                message.className = "success";
-
-                // small delay so user actually sees message
-                setTimeout(() => {
-                    startApp();
-                }, 500);
-
-                loadCallHistory(myNumber);
-            } catch (error) {
-                message.innerText = "Invalid OTP";
-                message.className = "error";
-            }
-        };
-
-        // START APP
+        // ================= SOCKET =================
         function startApp() {
-            document.getElementById("userLabel").innerText = "You: " + myNumber;
-            document.getElementById('login').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-
             socket = io("https://dialbridge.onrender.com", {
                 query: { userId: myNumber }
             });
 
             socket.on("connect", () => {
-                console.log("Connected:", socket.id);
                 socket.emit("register", myNumber);
             });
 
             setupSocketEvents();
         }
 
-        function startTimer() {
-            callSeconds = 0;
-            document.getElementById('status').innerText = "00:00";
-            callTimerInterval = setInterval(() => {
-                callSeconds++;
-                let mins = Math.floor(callSeconds / 60);
-                let secs = callSeconds % 60;
-
-                // Format to "MM:SS"
-                mins = mins < 10 ? '0' + mins : mins;
-                secs = secs < 10 ? '0' + secs : secs;
-
-                document.getElementById('status').innerText = `${mins}:${secs}`;
-            }, 1000);
-        }
-
-        function stopTimer() {
-            clearInterval(callTimerInterval);
-            callSeconds = 0;
-            document.getElementById('status').innerText = "Ringing...";
-        }
-
-        // SOCKET EVENTS
         function setupSocketEvents() {
 
             socket.on("incoming-call", (data) => {
-                document.getElementById('incoming').style.display = 'block';
-                document.getElementById('incomingNum').innerText = data.from;
                 window.caller = data.from;
+                document.getElementById('incoming').style.display = 'block';
             });
 
-            socket.on("call-accepted", () => {
-                startTimer();
-                startWebRTC(true);
+            socket.on("call-ringing", () => {
+                showCallScreen("Ringing...");
+            });
+
+            socket.on("call-accepted", async () => {
+                await startWebRTC(true);
             });
 
             socket.on("offer", async (offer) => {
@@ -623,189 +526,48 @@
                 }
             });
 
-            socket.on("user-offline", () => {
-                alert("User is offline");
-                resetUI();
-            });
-
-            socket.on("call-ended", () => {
-                alert("Call Ended");
-                cleanupCall();
-                stopTimer();
-                resetUI();
-            });
+            socket.on("call-ended", cleanupCall);
         }
 
-        // DIALER
-        window.press = (n) => {
-            number += n;
-
-            let formattedNumber = number;
-
-            // Auto add +91 if not already added
-            if (!formattedNumber.startsWith("+91")) {
-                formattedNumber = "+91" + formattedNumber;
-            }
-
-            document.getElementById('number').innerText = formattedNumber;
-        };
-
-        // REMOVE NUMBER FUNCTION
-        window.removeNumber = () => {
-            number = number.slice(0, -1);
-            document.getElementById('number').innerText = number;
-        };
-
-        let callStartTime;
-
+        // ================= CALL FLOW =================
         window.makeCall = () => {
-            callStartTime = Date.now(); // start timer
-
-            if (!number) return;
-
             currentCallUser = "+91" + number;
-
-            console.log("Calling:", currentCallUser);
 
             socket.emit("call-user", {
                 to: currentCallUser,
                 from: myNumber
             });
-
-            socket.on("call-ringing", () => {
-                document.getElementById('dialer').style.display = 'none';
-                document.getElementById('callScreen').style.display = 'flex';
-
-                document.getElementById('callUser').innerText = currentCallUser;
-                document.getElementById('status').innerText = "Ringing...";
-            });
-
-            socket.on("user-offline", () => {
-                console.log("OFFLINE EVENT RECEIVED");
-                alert("User is offline");
-
-                // stay on dialer (or reset if needed)
-                resetUI();
-            });
         };
 
-        window.acceptCall = () => {
+        window.acceptCall = async () => {
             currentCallUser = window.caller;
 
             socket.emit("call-accepted", {
-                to: window.caller,
+                to: currentCallUser,
                 from: myNumber
             });
 
-            document.getElementById('incoming').style.display = 'none';
-
-            document.getElementById('dialer').style.display = 'none';
-            document.getElementById('callScreen').style.display = 'flex';
-
-            document.getElementById('callUser').innerText = currentCallUser;
-            document.getElementById('status').innerText = "Connecting...";
-
-            startTimer();
-            startWebRTC(false);
+            showCallScreen("Connecting...");
+            await startWebRTC(false);
         };
 
-        window.rejectCall = () => {
-            socket.emit("call-rejected", {
-                to: window.caller,
-                from: myNumber
-            });
-
-            document.getElementById('incoming').style.display = 'none';
-        };
-
-        window.endCall = async () => {
-            socket.emit("end-call", { to: currentCallUser, from: myNumber });
-
-            let duration = Math.floor((Date.now() - callStartTime) / 1000);
-
-            await saveCallLog(myNumber, currentCallUser, duration);
-
-            await loadCallHistory(myNumber);
-
-            cleanupCall();
-            stopTimer(); // Stop timer when you hang up
-            resetUI();
-        };
-
-        function cleanupCall() {
-            currentCallUser = null;
-
-            if (peer) {
-                peer.close();
-                peer = null;
-            }
-
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-
-            isRemoteSet = false;
-            iceQueue = [];
-        }
-
-        function resetUI() {
-            document.getElementById('dialer').style.display = 'flex';
-            document.getElementById('callScreen').style.display = 'none';
-            number = "";
-            document.getElementById('number').innerText = number;
-        }
-
-        let peer;
-        let localStream;
-        let remoteAudio = document.getElementById("remoteAudio");
-
+        // ================= WEBRTC =================
         async function startWebRTC(isCaller) {
-            const response = await fetch('https://dialbridge.onrender.com/api/turn-credentials');
 
-            if (!response.ok) {
-                throw new Error("Failed to fetch TURN credentials");
-            }
+            peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
-            const iceServers = await response.json();
-
-            const peer = new RTCPeerConnection({
-                iceServers: [
-                    { urls: "stun:stun.l.google.com:19302" },
-
-                    {
-                        urls: "turn:openrelay.metered.ca:80",
-                        username: "openrelayproject",
-                        credential: "openrelayproject"
-                    }
-                ]
-            });
-
-            // Get mic
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            } catch (err) {
-                alert("Microphone permission denied");
-                return;
-            }
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
             localStream.getTracks().forEach(track => {
                 peer.addTrack(track, localStream);
             });
 
-            // Receive audio
             peer.ontrack = (event) => {
-                const remoteAudio = document.getElementById("remoteAudio");
-
-                remoteAudio.srcObject = event.streams[0];
-
-                remoteAudio.muted = false;
-
-                remoteAudio.play().catch(err => {
-                    console.log("Autoplay blocked:", err);
-                });
+                const audio = document.getElementById("remoteAudio");
+                audio.srcObject = event.streams[0];
+                audio.play().catch(() => { });
             };
 
-            // ICE
             peer.onicecandidate = (event) => {
                 if (event.candidate) {
                     socket.emit("ice-candidate", {
@@ -815,7 +577,6 @@
                 }
             };
 
-            // CALLER creates offer
             if (isCaller) {
                 const offer = await peer.createOffer();
                 await peer.setLocalDescription(offer);
@@ -827,18 +588,14 @@
             }
         }
 
-        let iceQueue = [];
-        let isRemoteSet = false;
-
+        // ================= SIGNALING =================
         async function handleOffer(offer) {
-            if (!peer) {
-                await startWebRTC(false); // create peer FIRST
-            }
+
+            if (!peer) await startWebRTC(false);
 
             await peer.setRemoteDescription(new RTCSessionDescription(offer));
             isRemoteSet = true;
 
-            // process queued ICE
             iceQueue.forEach(c => peer.addIceCandidate(c));
             iceQueue = [];
 
@@ -853,20 +610,33 @@
 
         async function handleAnswer(answer) {
             await peer.setRemoteDescription(new RTCSessionDescription(answer));
+
+            isRemoteSet = true;
+
+            iceQueue.forEach(c => peer.addIceCandidate(c));
+            iceQueue = [];
         }
 
-        async function saveCallLog(caller, receiver, duration) {
-            try {
-                await addDoc(collection(db, "call_logs"), {
-                    caller,
-                    receiver,
-                    duration,
-                    timestamp: Date.now()
-                });
-                console.log("Call saved");
-            } catch (err) {
-                console.error("Error saving call:", err);
+        // ================= CLEANUP =================
+        function cleanupCall() {
+            if (peer) {
+                peer.close();
+                peer = null;
             }
+
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+            }
+
+            isRemoteSet = false;
+            iceQueue = [];
+        }
+
+        // ================= UI =================
+        function showCallScreen(status) {
+            document.getElementById('dialer').style.display = 'none';
+            document.getElementById('callScreen').style.display = 'flex';
+            document.getElementById('status').innerText = status;
         }
     </script>
 
