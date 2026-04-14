@@ -466,9 +466,11 @@
         let socket;
         let myNumber;
         let currentCallUser;
-        let number;
+        let number = "";
         let callStartTime;
         let callSeconds;
+        let callTimerInterval;
+        let caller;
 
         let peer;
         let localStream;
@@ -575,10 +577,9 @@
         }
 
         function setupSocketEvents() {
-
             socket.on("incoming-call", (data) => {
-                window.caller = data.from;
-                document.getElementById('incoming').style.display = 'block';
+                caller = data.from;
+                document.getElementById('incomingNum').innerText = data.from;
             });
 
             socket.on("call-ringing", () => {
@@ -646,21 +647,14 @@
         // DIALER
         window.press = (n) => {
             number += n;
-
-            let formattedNumber = number;
-
-            // Auto add +91 if not already added
-            if (!formattedNumber.startsWith("+91")) {
-                formattedNumber = "+91" + formattedNumber;
-            }
-
-            document.getElementById('number').innerText = formattedNumber;
+            document.getElementById('number').innerText = "+91" + number;
         };
 
         // REMOVE NUMBER FUNCTION
         window.removeNumber = () => {
+            if (!number) return;
             number = number.slice(0, -1);
-            document.getElementById('number').innerText = number;
+            document.getElementById('number').innerText = number ? "+91" + number : "";
         };
 
         // ================= CALL FLOW =================
@@ -678,20 +672,14 @@
         };
 
         window.acceptCall = async () => {
-            currentCallUser = window.caller;
+            currentCallUser = caller;
 
             socket.emit("call-accepted", {
                 to: currentCallUser,
                 from: myNumber
             });
 
-            // document.getElementById('incoming').style.display = 'none';
-
-            // document.getElementById('dialer').style.display = 'none';
-            // document.getElementById('callScreen').style.display = 'flex';
-
             // document.getElementById('callUser').innerText = currentCallUser;
-            // document.getElementById('status').innerText = "Connecting...";
 
             showCallScreen("Connecting...");
             startTimer();
@@ -700,7 +688,7 @@
 
         window.rejectCall = () => {
             socket.emit("call-rejected", {
-                to: window.caller,
+                to: caller,
                 from: myNumber
             });
 
