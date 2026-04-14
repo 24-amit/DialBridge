@@ -447,7 +447,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        // import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -459,9 +459,9 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+        // const auth = getAuth(app);
         const db = getFirestore(app);
-        auth.settings.appVerificationDisabledForTesting = true;
+        // auth.settings.appVerificationDisabledForTesting = true;
 
         let confirmationResult;
         let socket;
@@ -478,30 +478,9 @@
         let iceQueue = [];
         let isRemoteSet = false;
 
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            size: 'invisible'
-        });
-
-        // window.sendOTP = async () => {
-        //     const phone = document.getElementById('phone').value;
-        //     const message = document.getElementById('msg');
-
-        //     try {
-        //         confirmationResult = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
-
-        //         // Hide phone input
-        //         document.querySelector('.login-box').classList.add('hidden');
-
-        //         // Show OTP input
-        //         document.getElementById('otpBox').classList.remove('hidden');
-
-        //         message.innerText = "OTP sent successfully";
-        //         message.className = "success";
-        //     } catch (error) {
-        //         message.innerText = error.message;
-        //         message.className = "error";
-        //     }
-        // };
+        // window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        // size: 'invisible'
+        // });
 
         window.sendOTP = () => {
             let phone = document.getElementById('phone').value.trim();
@@ -537,7 +516,10 @@
 
             try {
                 if (otp === "123456") {
-                    const myNumber = localStorage.getItem("tempPhone");
+                    myNumber = localStorage.getItem("tempPhone");
+                    if (myNumber) {
+                        startApp();
+                    }
 
                     if (!myNumber) {
                         throw new Error("Phone number missing");
@@ -568,79 +550,6 @@
                 message.className = "error";
             }
         };
-
-        window.verifyOTP = () => {
-            const otp = document.getElementById('otp').value;
-            const message = document.getElementById('msg');
-
-            try {
-                if (otp === "123456") {
-                    const myNumber = localStorage.getItem("tempPhone");
-
-                    if (!myNumber) {
-                        throw new Error("Phone number missing");
-                    }
-
-                    localStorage.setItem("userNumber", myNumber);
-
-                    message.innerText = "Login Successful";
-                    message.className = "success";
-
-                    setTimeout(() => {
-                        startApp();
-                    }, 500);
-
-                } else {
-                    throw new Error("Invalid OTP");
-                }
-
-            } catch (error) {
-                message.innerText = error.message;
-                message.className = "error";
-            }
-        };
-
-        // window.verifyOTP = async () => {
-        //     const otp = document.getElementById('otp').value;
-        //     const message = document.getElementById('msg');
-
-        //     try {
-        //         // const result = await confirmationResult.confirm(otp);
-
-        //         // myNumber = result.user.phoneNumber;
-
-        //         if (otp === "123456") {
-        //             const inputNumber = localStorage.getItem("tempPhone");
-
-        //             if (!inputNumber) {
-        //                 throw new Error("Phone number missing");
-        //             }
-
-        //             // Format number (force +91 if needed)
-        //             let myNumber = inputNumber.startsWith("+")
-        //                 ? inputNumber
-        //                 : "+91" + inputNumber;
-
-        //             localStorage.setItem("userNumber", myNumber);
-
-        //             message.innerText = "Login Successful";
-        //             message.className = "success";
-
-        //             // small delay so user actually sees message
-        //             setTimeout(() => {
-        //                 startApp();
-        //             }, 500);
-
-        //             // loadCallHistory(myNumber);
-        //         } else {
-        //             throw new Error("Invalid OTP");
-        //         }
-
-        //     } catch (error) {
-        //         message.innerText = "Invalid OTP";
-        //         message.className = "error";
-        //     }
-        // };
 
         // async function loadCallHistory(userNumber) {
         //     const q1 = query(collection(db, "call_logs"), where("caller", "==", userNumber));
@@ -695,6 +604,7 @@
             socket.on("incoming-call", (data) => {
                 caller = data.from;
                 document.getElementById('incomingNum').innerText = data.from;
+                document.getElementById('incoming').style.display = 'block';
             });
 
             socket.on("call-ringing", () => {
@@ -823,6 +733,15 @@
             stopTimer(); // Stop timer when you hang up
             resetUI();
         };
+
+        window.addEventListener("beforeunload", async () => {
+            if (myNumber) {
+                await setDoc(doc(db, "users", myNumber), {
+                    online: false,
+                    lastSeen: Date.now()
+                }, { merge: true });
+            }
+        });
 
         // ================= WEBRTC =================
         async function startWebRTC(isCaller) {
