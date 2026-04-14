@@ -467,6 +467,8 @@
         let myNumber;
         let currentCallUser;
         let number;
+        let callStartTime;
+        let callSeconds;
 
         let peer;
         let localStream;
@@ -662,7 +664,6 @@
         };
 
         // ================= CALL FLOW =================
-        let callStartTime;
         window.makeCall = () => {
             callStartTime = Date.now();
 
