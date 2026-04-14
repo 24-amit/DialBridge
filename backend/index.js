@@ -71,8 +71,18 @@ io.on("connection", (socket) => {
         if (caller) io.to(caller).emit("call-ended");
     });
 
+    socket.on("connect", () => {
+        console.log("Connected:", socket.id);
+        socket.emit("register", myNumber);
+    });
+
     socket.on("disconnect", () => {
         console.log("Disconnected:", socket.id);
+    });
+
+    socket.on("reconnect", () => {
+        console.log("Reconnected");
+        socket.emit("register", myNumber);
     });
 });
 
