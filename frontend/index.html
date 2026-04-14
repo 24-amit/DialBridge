@@ -7,10 +7,16 @@
     <title>DialBridge</title>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             font-family: Arial, sans-serif;
             height: 100vh;
+            width: 100vw;
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -22,7 +28,8 @@
             background: white;
             padding: 30px;
             border-radius: 15px;
-            width: 320px;
+            width: 90%;
+            max-width: 320px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             text-align: center;
             animation: fadeIn 0.6s ease-in-out;
@@ -92,8 +99,9 @@
 
         /* APP */
         #app {
-            display: none;
+            display: block;
             height: 100vh;
+            width: 100vw;
         }
 
         /* FIXED LAYOUT */
@@ -106,11 +114,22 @@
         /* SIDEBAR (make it smaller + clean) */
         .sidebar {
             width: 100%;
-            padding: 20px;
+            padding: 15px;
             color: white;
-            box-sizing: border-box;
             text-align: center;
             font-weight: bold;
+        }
+
+        .sidebar h2 {
+            color: white;
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .sidebar p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
         }
 
         /* MAIN AREA (center properly) */
@@ -119,6 +138,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 15px;
+            overflow: hidden;
         }
 
         /* CARD */
@@ -126,12 +147,13 @@
             background: #f1f5f9;
             padding: 20px;
             border-radius: 20px;
-            width: 400px;
-            height: 90%;
-            /* FIX HEIGHT */
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            max-height: 800px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         }
 
         /* HISTORY */
@@ -139,52 +161,91 @@
             flex: 1;
             overflow-y: auto;
             text-align: left;
+            margin-bottom: 15px;
+            padding-right: 5px;
+        }
+
+        .history::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .history::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
         }
 
         .history h3 {
             color: #333;
+            margin-top: 0;
+            position: sticky;
+            top: 0;
+            background: #f1f5f9;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
         }
 
-        .history div {
-            /* padding: 5px; */
-            /* background: #e2e8f0; */
-            border-radius: 6px;
-            margin-bottom: 5px;
+        #historyList {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
             cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            font-size: 14px;
         }
 
-        /* NUMBER */
+        /* NUMBER DISPLAY BAR */
         .display {
-            font-size: 30px;
+            min-height: 55px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            font-size: 28px;
             text-align: center;
             font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 5px 15px;
+            margin-bottom: 20px;
+            color: #1e293b;
+            letter-spacing: 2px;
+            overflow: hidden;
+            white-space: nowrap;
         }
 
         /* KEYPAD */
         .keypad {
             display: grid;
-            grid-template-columns: repeat(3, 100px);
-            gap: 20px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
             justify-content: center;
-            margin-top: 20px;
-            /* Space added above keypad */
-            margin-bottom: 30px;
-            /* Space added below keypad */
+            margin: 0 auto 20px auto;
+            max-width: 250px;
         }
 
         /* KEYS */
         .key {
-            width: 70px;
-            height: 70px;
+            width: 60px;
+            /* Reduced from 70px */
+            height: 60px;
+            /* Reduced from 70px */
             background: #cbd5e1;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
+            font-size: 22px;
+            color: #333;
+            margin: 0 auto;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
         }
 
-        .key:hover {
+        .key:active {
             background: #94a3b8;
+            transform: scale(0.95);
         }
 
         /* Wrapper for Call and Remove buttons */
@@ -193,21 +254,35 @@
             justify-content: center;
             align-items: center;
             gap: 30px;
+            padding-bottom: 10px;
         }
 
-        /* CALL BUTTON */
-        .call-btn {
-            width: 70px;
-            height: 70px;
+        .call-btn,
+        .remove-btn {
+            width: 65px;
+            height: 65px;
             border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: white;
+            transition: 0.2s;
+        }
+
+        .call-btn {
             background: #22c55e;
         }
 
         .remove-btn {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: #cbd5e1;
+            background: #94a3b8;
+        }
+
+        .call-btn:active,
+        .remove-btn:active {
+            transform: scale(0.95);
         }
 
         /* CALL SCREEN */
@@ -223,7 +298,7 @@
         #status {
             font-size: 16px;
             color: #64748b;
-            margin: 0 0 5px 0;
+            margin-bottom: 5px;
             font-weight: bold;
         }
 
@@ -236,15 +311,16 @@
 
         /* Center Logo Container */
         .call-center {
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            flex: 1;
         }
 
         .logo-a {
             width: 120px;
             height: 120px;
+            border-radius: 50%;
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             font-size: 60px;
@@ -252,7 +328,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            border-radius: 50%;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
         }
 
@@ -265,39 +340,27 @@
         }
 
         .btn {
-            width: 65px;
-            height: 65px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             border: none;
+            font-size: 24px;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            transition: 0.2s;
         }
 
-        .btn:hover {
-            transform: scale(1.05);
-        }
-
-        .mute {
-            background: #cbd5e1;
-            color: #333;
-            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
-        }
-
+        .mute,
         .speaker {
             background: #cbd5e1;
             color: #333;
-            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
         }
 
         .end {
-            background: #cbd5e1;
+            background: #ef4444;
             color: white;
-            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
         }
 
         /* Incoming Call */
@@ -311,32 +374,39 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+            z-index: 100;
         }
 
         .incoming-actions {
-            margin-top: 10px;
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .accept,
+        .reject {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            flex: 1;
         }
 
         .accept {
-            background: green;
+            background: #22c55e;
             color: white;
-            padding: 10px;
-            border: none;
-            margin-right: 10px;
         }
 
         .reject {
-            background: red;
+            background: #ef4444;
             color: white;
-            padding: 10px;
-            border: none;
         }
     </style>
 </head>
 
 <body>
     <!-- LOGIN -->
-    <div id="login">
+    <div id="login" style="display: none;">
         <h2>Phone Login</h2>
 
         <div class="login-box">
@@ -350,14 +420,12 @@
         </div>
 
         <div id="recaptcha-container"></div>
-
         <p id="msg"></p>
     </div>
 
     <!-- APP -->
     <div id="app">
         <div class="container">
-
             <!-- Sidebar -->
             <div class="sidebar">
                 <h2>DialBridge</h2>
@@ -366,15 +434,12 @@
 
             <!-- Main -->
             <div class="main">
-
                 <!-- Dialer -->
                 <div id="dialer" class="card">
                     <!-- CALL HISTORY -->
                     <div class="history">
                         <h3>Recent</h3>
-                        <div id="historyList">
-                            <!-- dynamic -->
-                        </div>
+                        <div id="historyList"></div>
                     </div>
 
                     <!-- PHONE NUMBER DISPLAY -->
@@ -398,16 +463,13 @@
 
                     <!-- ACTION BUTTONS -->
                     <div class="action-buttons">
-                        <!-- CALL BUTTON -->
                         <button class="call-btn" onclick="makeCall()">📞</button>
-                        <!-- REMOVE BUTTON -->
                         <button class="remove-btn" onclick="removeNumber()">⌫</button>
                     </div>
                 </div>
 
                 <!-- Call Screen -->
                 <div id="callScreen" class="card call-screen">
-
                     <!-- Top Section: Status and Number -->
                     <div class="call-top">
                         <p id="status">Ringing...</p>
@@ -425,9 +487,7 @@
                         <button class="btn speaker">🔊</button>
                         <button class="btn end" onclick="endCall()">📞</button>
                     </div>
-
                 </div>
-
             </div>
         </div>
 
@@ -496,7 +556,6 @@
                 return;
             }
 
-            // Add +91
             const formattedNumber = "+91" + phone;
 
             // Store temporarily
@@ -551,27 +610,27 @@
             }
         };
 
-        // async function loadCallHistory(userNumber) {
-        //     const q1 = query(collection(db, "call_logs"), where("caller", "==", userNumber));
-        //     const q2 = query(collection(db, "call_logs"), where("receiver", "==", userNumber));
+        async function loadCallHistory(userNumber) {
+            const q1 = query(collection(db, "call_logs"), where("caller", "==", userNumber));
+            const q2 = query(collection(db, "call_logs"), where("receiver", "==", userNumber));
 
-        //     const snap1 = await getDocs(q1);
-        //     const snap2 = await getDocs(q2);
+            const snap1 = await getDocs(q1);
+            const snap2 = await getDocs(q2);
 
-        //     let historyHTML = "";
+            let historyHTML = "";
 
-        //     snap1.forEach(doc => {
-        //         const data = doc.data();
-        //         historyHTML += `<div>${data.receiver} (${data.duration}s)</div>`;
-        //     });
+            snap1.forEach(doc => {
+                const data = doc.data();
+                historyHTML += `<div>${data.receiver} (${data.duration}s)</div>`;
+            });
 
-        //     snap2.forEach(doc => {
-        //         const data = doc.data();
-        //         historyHTML += `<div>${data.caller} (${data.duration}s)</div>`;
-        //     });
+            snap2.forEach(doc => {
+                const data = doc.data();
+                historyHTML += `<div>${data.caller} (${data.duration}s)</div>`;
+            });
 
-        //     document.getElementById("historyList").innerHTML = historyHTML;
-        // }
+            document.getElementById("historyList").innerHTML = historyHTML;
+        }
 
         // 🔥 TURN + STUN (FINAL CONFIG)
         const ICE_SERVERS = [
@@ -666,7 +725,6 @@
         function stopTimer() {
             clearInterval(callTimerInterval);
             callSeconds = 0;
-            // document.getElementById('status').innerText = "Ringing...";
         }
 
         // DIALER
@@ -727,9 +785,9 @@
 
             let duration = Math.floor((Date.now() - callStartTime) / 1000);
 
-            // await saveCallLog(myNumber, currentCallUser, duration);
+            await saveCallLog(myNumber, currentCallUser, duration);
 
-            // await loadCallHistory(myNumber);
+            await loadCallHistory(myNumber);
 
             cleanupCall();
             stopTimer(); // Stop timer when you hang up
@@ -840,19 +898,19 @@
             document.getElementById('number').innerText = number;
         }
 
-        // async function saveCallLog(caller, receiver, duration) {
-        //     try {
-        //         await addDoc(collection(db, "call_logs"), {
-        //             caller,
-        //             receiver,
-        //             duration,
-        //             timestamp: Date.now()
-        //         });
-        //         console.log("Call saved");
-        //     } catch (err) {
-        //         console.error("Error saving call:", err);
-        //     }
-        // }
+        async function saveCallLog(caller, receiver, duration) {
+            try {
+                await addDoc(collection(db, "call_logs"), {
+                    caller,
+                    receiver,
+                    duration,
+                    timestamp: Date.now()
+                });
+                console.log("Call saved");
+            } catch (err) {
+                console.error("Error saving call:", err);
+            }
+        }
     </script>
 
 </body>
