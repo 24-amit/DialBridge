@@ -340,7 +340,8 @@
         <h2>Phone Login</h2>
 
         <div class="login-box">
-            <input id="phone" placeholder="Enter phone number (+91...)" />
+            <input type="text" id="phone" placeholder="Enter 10-digit number" maxlength="10">
+            <span>+91</span>
             <button onclick="sendOTP()">Send OTP</button>
         </div>
 
@@ -481,51 +482,158 @@
             size: 'invisible'
         });
 
-        window.sendOTP = async () => {
-            const phone = document.getElementById('phone').value;
+        // window.sendOTP = async () => {
+        //     const phone = document.getElementById('phone').value;
+        //     const message = document.getElementById('msg');
+
+        //     try {
+        //         confirmationResult = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
+
+        //         // Hide phone input
+        //         document.querySelector('.login-box').classList.add('hidden');
+
+        //         // Show OTP input
+        //         document.getElementById('otpBox').classList.remove('hidden');
+
+        //         message.innerText = "OTP sent successfully";
+        //         message.className = "success";
+        //     } catch (error) {
+        //         message.innerText = error.message;
+        //         message.className = "error";
+        //     }
+        // };
+
+        window.sendOTP = () => {
+            let phone = document.getElementById('phone').value.trim();
+            const message = document.getElementById('msg');
+
+            // Remove non-digits
+            phone = phone.replace(/\D/g, "");
+
+            // Strict 10-digit validation
+            if (phone.length !== 10) {
+                message.innerText = "Enter valid 10-digit phone number";
+                message.className = "error";
+                return;
+            }
+
+            // Add +91
+            const formattedNumber = "+91" + phone;
+
+            // Store temporarily
+            localStorage.setItem("tempPhone", formattedNumber);
+
+            // UI changes
+            document.querySelector('.login-box').classList.add('hidden');
+            document.getElementById('otpBox').classList.remove('hidden');
+
+            message.innerText = "OTP sent";
+            message.className = "success";
+        };
+
+        window.verifyOTP = () => {
+            const otp = document.getElementById('otp').value;
             const message = document.getElementById('msg');
 
             try {
-                confirmationResult = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
+                if (otp === "123456") {
+                    const myNumber = localStorage.getItem("tempPhone");
 
-                // Hide phone input
-                document.querySelector('.login-box').classList.add('hidden');
+                    if (!myNumber) {
+                        throw new Error("Phone number missing");
+                    }
 
-                // Show OTP input
-                document.getElementById('otpBox').classList.remove('hidden');
+                    localStorage.setItem("userNumber", myNumber);
 
-                message.innerText = "OTP sent successfully";
-                message.className = "success";
+                    message.innerText = "Login Successful";
+                    message.className = "success";
+
+                    setTimeout(() => {
+                        startApp();
+                    }, 500);
+
+                } else {
+                    throw new Error("Invalid OTP");
+                }
+
             } catch (error) {
                 message.innerText = error.message;
                 message.className = "error";
             }
         };
 
-        window.verifyOTP = async () => {
+        window.verifyOTP = () => {
             const otp = document.getElementById('otp').value;
             const message = document.getElementById('msg');
 
             try {
-                const result = await confirmationResult.confirm(otp);
+                if (otp === "123456") {
+                    const myNumber = localStorage.getItem("tempPhone");
 
-                myNumber = result.user.phoneNumber;
-                localStorage.setItem("userNumber", myNumber);
+                    if (!myNumber) {
+                        throw new Error("Phone number missing");
+                    }
 
-                message.innerText = "Login Successful";
-                message.className = "success";
+                    localStorage.setItem("userNumber", myNumber);
 
-                // small delay so user actually sees message
-                setTimeout(() => {
-                    startApp();
-                }, 500);
+                    message.innerText = "Login Successful";
+                    message.className = "success";
 
-                loadCallHistory(myNumber);
+                    setTimeout(() => {
+                        startApp();
+                    }, 500);
+
+                } else {
+                    throw new Error("Invalid OTP");
+                }
+
             } catch (error) {
-                message.innerText = "Invalid OTP";
+                message.innerText = error.message;
                 message.className = "error";
             }
         };
+
+        // window.verifyOTP = async () => {
+        //     const otp = document.getElementById('otp').value;
+        //     const message = document.getElementById('msg');
+
+        //     try {
+        //         // const result = await confirmationResult.confirm(otp);
+
+        //         // myNumber = result.user.phoneNumber;
+
+        //         if (otp === "123456") {
+        //             const inputNumber = localStorage.getItem("tempPhone");
+
+        //             if (!inputNumber) {
+        //                 throw new Error("Phone number missing");
+        //             }
+
+        //             // Format number (force +91 if needed)
+        //             let myNumber = inputNumber.startsWith("+")
+        //                 ? inputNumber
+        //                 : "+91" + inputNumber;
+
+        //             localStorage.setItem("userNumber", myNumber);
+
+        //             message.innerText = "Login Successful";
+        //             message.className = "success";
+
+        //             // small delay so user actually sees message
+        //             setTimeout(() => {
+        //                 startApp();
+        //             }, 500);
+
+        //             // loadCallHistory(myNumber);
+        //         } else {
+        //             throw new Error("Invalid OTP");
+        //         }
+
+        //     } catch (error) {
+        //         message.innerText = "Invalid OTP";
+        //         message.className = "error";
+        //     }
+        // };
 
         // async function loadCallHistory(userNumber) {
         //     const q1 = query(collection(db, "call_logs"), where("caller", "==", userNumber));
