@@ -462,6 +462,7 @@
         const db = getFirestore(app);
         auth.settings.appVerificationDisabledForTesting = true;
 
+        let confirmationResult;
         let socket;
         let myNumber;
         let currentCallUser;
