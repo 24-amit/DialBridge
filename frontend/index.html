@@ -187,21 +187,21 @@
             flex-direction: column;
         }
 
-        /* SIDEBAR (make it smaller + clean) */
-        .sidebar {
+        /* header */
+        .header {
             flex-shrink: 0;
             text-align: center;
             padding: clamp(var(--space-3), 2.5vh, var(--space-5)) var(--space-4);
             color: white;
         }
 
-        .sidebar h2 {
+        .header h2 {
             font-size: clamp(1.1rem, 4vw, 1.4rem);
             font-weight: 700;
             letter-spacing: 0.02em;
         }
 
-        .sidebar p {
+        .header p {
             font-size: var(--text-xs);
             opacity: 0.8;
             margin-top: var(--space-1);
@@ -719,9 +719,9 @@
 
     <!-- APP -->
     <div id="app">
-        <div class="container">`
+        <div class="container">
             <!-- Sidebar -->
-            <div class="sidebar">
+            <div class="header">
                 <h2>DialBridge</h2>
                 <p id="userLabel"></p>
             </div>
@@ -867,7 +867,7 @@
             </div>
         </div>
 
-        <audio id="remoteAudio" autoplay></audio>
+        <audio id="remoteAudio"></audio>
     </div>
 
     <!-- ======== SCRIPTS ======== -->
@@ -875,8 +875,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAoA3skXYt00nNcV1efQx6aHtZtAhZ5ZqI",
@@ -888,6 +887,9 @@
         const app = initializeApp(firebaseConfig);
         // const auth = getAuth(app);
         const db = getFirestore(app);
+        const Store = { data: {} };
+        Store.setItem = (k, v) => Store.data[k] = v;
+        Store.getItem = (k) => Store.data[k] || null;
         // auth.settings.appVerificationDisabledForTesting = true;
 
         let socket, myNumber, currentCallUser, number = "";
@@ -916,7 +918,7 @@
             }
 
             // Store temporarily
-            localStorage.setItem("tempPhone", "+91" + phone);
+            Store.setItem("tempPhone", "+91" + phone);
 
             // UI changes
             document.querySelector('.login-box').classList.add('hidden');
@@ -932,16 +934,12 @@
 
             try {
                 if (otp === "123456") {
-                    myNumber = localStorage.getItem("tempPhone");
-                    if (myNumber) {
-                        startApp();
-                    }
-
+                    myNumber = Store.getItem("tempPhone");
                     if (!myNumber) {
                         throw new Error("Phone number missing");
                     }
 
-                    localStorage.setItem("userNumber", myNumber);
+                    Store.setItem("userNumber", myNumber);
 
                     // ✅ REGISTER USER IN FIRESTORE
                     await setDoc(doc(db, "users", myNumber), {
@@ -969,7 +967,7 @@
 
         /* ---- APP START ---- */
         function startApp() {
-            myNumber = myNumber || localStorage.getItem("userNumber");
+            myNumber = myNumber || Store.getItem("userNumber");
             document.getElementById("userLabel").innerText = "You: " + myNumber;
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
@@ -1072,14 +1070,13 @@
             });
 
             socket.on("call-ended", () => {
-                alert("Call Ended");
-                cleanupCall();
-                stopTimer();
-                resetUI();
+                document.getElementById('status').innerText = "Call Ended";
+                setTimeout(() => { cleanupCall(); stopTimer(); resetUI(); }, 1000);
             });
 
             socket.on("user-offline", () => {
-                alert("User is offline");
+                document.getElementById('status').innerText = "User is offline";
+                setTimeout(resetUI, 2000);
             });
         }
 
@@ -1166,7 +1163,7 @@
         window.endCall = async () => {
             socket.emit("end-call", { to: currentCallUser, from: myNumber });
 
-            const duration = Math.floor((Date.now() - callStartTime) / 1000);
+            const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
 
             await saveCallLog(myNumber, currentCallUser, duration);
 
