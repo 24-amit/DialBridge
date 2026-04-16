@@ -3,43 +3,105 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DialBridge</title>
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
 
     <style>
-        * {
+        :root {
+            --font-body: 'Satoshi', 'Inter', sans-serif;
+            --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+            --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+            --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+            --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+            --space-1: 0.25rem;
+            --space-2: 0.5rem;
+            --space-3: 0.75rem;
+            --space-4: 1rem;
+            --space-5: 1.25rem;
+            --space-6: 1.5rem;
+            --space-8: 2rem;
+            --space-10: 2.5rem;
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --radius-2xl: 1.5rem;
+            --radius-full: 9999px;
+            --transition: 160ms cubic-bezier(0.16, 1, 0.3, 1);
+            --color-brand-from: #667eea;
+            --color-brand-to: #764ba2;
+            --color-bg: #eef0f7;
+            --color-surface: #f4f5fb;
+            --color-surface-2: #ffffff;
+            --color-key-bg: #dde1ef;
+            --color-key-hover: #c8cde0;
+            --color-key-active: #b4bad2;
+            --color-border: oklch(from #667eea l c h / 0.12);
+            --color-text: #1e1b2e;
+            --color-text-muted: #6b6882;
+            --color-text-faint: #a8a6ba;
+            --color-divider: #d8daec;
+            --color-call: #22c55e;
+            --color-call-hover: #16a34a;
+            --color-call-ring: oklch(from #22c55e l c h / 0.25);
+            --color-del: #dde1ef;
+            --color-del-hover: #c8cde0;
+            --shadow-card: 0 8px 32px oklch(0.25 0.08 280 / 0.14);
+            --shadow-key: 0 2px 6px oklch(0.25 0.08 280 / 0.10);
+            --shadow-btn: 0 4px 16px oklch(0.25 0.08 280 / 0.18);
+        }
+
+        *,
+        *::before,
+        *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
+        html {
+            -webkit-text-size-adjust: none;
+            text-size-adjust: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            height: 100dvh;
+            font-family: var(--font-body);
+            font-size: var(--text-base);
+            min-height: 100dvh;
             width: 100vw;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            color: var(--color-text);
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            background: none;
+            font: inherit;
         }
 
         /* LOGIN */
         #login {
-            background: white;
-            padding: clamp(20px, 5vw, 30px);
-            border-radius: 15px;
+            background: var(--color-surface-2);
+            padding: clamp(var(--space-5), 6vw, var(--space-8));
+            border-radius: var(--radius-2xl);
             width: 90%;
             max-width: 300px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow-card);
             text-align: center;
-            animation: fadeIn 0.6s ease-in-out;
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
-        @keyframes fadeIn {
+        @keyframes slideUp {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(24px);
             }
 
             to {
@@ -48,60 +110,68 @@
             }
         }
 
-        h2 {
-            margin-bottom: 15px;
-            color: #333;
-            font-size: clamp(18px, 5vw, 22px);
+        #login h2 {
+            font-size: var(--text-lg);
+            font-weight: 700;
+            color: var(--color-text);
+            margin-bottom: var(--space-5);
         }
 
-        input {
+        #login input {
             width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+            padding: var(--space-3) var(--space-4);
+            margin: var(--space-2) 0;
+            border: 1.5px solid var(--color-divider);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-sm);
             outline: none;
-            transition: 0.3s;
-            font-size: 14px;
+            transition: border-color var(--transition), box-shadow var(--transition);
+            background: var(--color-surface);
+            color: var(--color-text);
         }
 
-        input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+        #login input:focus {
+            border-color: var(--color-brand-from);
+            box-shadow: 0 0 0 3px oklch(from #667eea l c h / 0.15);
         }
 
         /* Override for login buttons only */
-        #login button {
+        #login .login-btn {
             width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin-top: var(--space-3);
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(135deg, var(--color-brand-from), var(--color-brand-to));
             color: white;
-            font-size: 15px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            margin-top: 5px;
+            font-size: var(--text-sm);
+            font-weight: 600;
+            box-shadow: var(--shadow-btn);
+            transition: transform var(--transition), box-shadow var(--transition);
         }
 
-        #login button:hover {
-            transform: scale(1.03);
+        #login .login-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px oklch(from #764ba2 l c h / 0.35);
+        }
+
+        #login .login-btn:active {
+            transform: scale(0.97);
         }
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
         .success {
-            color: green;
-            margin-top: 10px;
-            font-size: 13px;
+            color: #16a34a;
+            font-size: var(--text-xs);
+            margin-top: var(--space-2);
         }
 
         .error {
-            color: red;
-            margin-top: 10px;
-            font-size: 13px;
+            color: #dc2626;
+            font-size: var(--text-xs);
+            margin-top: var(--space-2);
         }
 
         /* APP */
@@ -111,7 +181,6 @@
             width: 100vw;
         }
 
-        /* FIXED LAYOUT */
         .container {
             height: 100%;
             display: flex;
@@ -120,368 +189,511 @@
 
         /* SIDEBAR (make it smaller + clean) */
         .sidebar {
-            width: 100%;
-            padding: clamp(8px, 2vh, 15px) clamp(10px, 3vw, 20px);
-            color: white;
-            text-align: center;
-            font-weight: bold;
             flex-shrink: 0;
+            text-align: center;
+            padding: clamp(var(--space-3), 2.5vh, var(--space-5)) var(--space-4);
+            color: white;
         }
 
         .sidebar h2 {
-            color: white;
-            font-size: clamp(16px, 4.5vw, 22px);
+            font-size: clamp(1.1rem, 4vw, 1.4rem);
+            font-weight: 700;
+            letter-spacing: 0.02em;
         }
 
         .sidebar p {
-            margin-top: 3px;
-            font-size: clamp(11px, 3vw, 14px);
-            opacity: 0.9;
+            font-size: var(--text-xs);
+            opacity: 0.8;
+            margin-top: var(--space-1);
         }
 
         /* MAIN AREA (center properly) */
         .main {
             flex: 1;
+            min-height: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: clamp(8px, 2vw, 15px);
-            overflow: hidden;
-            min-height: 0;
+            padding: 0 clamp(var(--space-3), 3vw, var(--space-5)) clamp(var(--space-3), 2.5vh, var(--space-5));
         }
+
 
         /* CARD */
         .card {
-            background: #f1f5f9;
-            padding: clamp(12px, 3vw, 20px);
-            border-radius: 20px;
+            background: var(--color-surface);
+            border-radius: var(--radius-2xl);
             width: 100%;
-            max-width: 420px;
+            max-width: 400px;
             height: 100%;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--shadow-card);
             overflow: hidden;
-            min-height: 0;
         }
 
         /* HISTORY */
         .history {
             flex: 1;
-            overflow-y: auto;
-            text-align: left;
-            margin-bottom: clamp(8px, 2vh, 15px);
-            padding-right: 4px;
             min-height: 0;
+            overflow-y: auto;
+            padding: var(--space-4) var(--space-4) var(--space-3);
         }
 
         .history::-webkit-scrollbar {
-            width: 5px;
+            width: 4px;
         }
 
         .history::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
+            background: var(--color-divider);
+            border-radius: var(--radius-full);
         }
 
-        .history h3 {
-            color: #333;
-            font-size: clamp(13px, 3.5vw, 16px);
+        .history-header {
+            font-size: var(--text-sm);
+            font-weight: 700;
+            color: var(--color-text-muted);
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
             position: sticky;
             top: 0;
-            background: #f1f5f9;
-            padding-bottom: 8px;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #e2e8f0;
+            background: var(--color-surface);
+            padding-bottom: var(--space-2);
+            margin-bottom: var(--space-2);
         }
 
-        #historyList>div {
-            padding: 9px 10px;
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 6px;
-            cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-            font-size: clamp(11px, 3vw, 14px);
-            color: #334155;
-            transition: background 0.2s;
-        }
-
-        #historyList>div:hover {
-            background: #f8fafc;
-        }
-
-        /* NUMBER DISPLAY BAR */
-        #number {
-            flex-shrink: 0;
-            min-height: clamp(44px, 10vh, 60px);
-            background: #e2e8f0;
-            border-radius: 12px;
-            font-size: clamp(20px, 6vw, 30px);
-            text-align: center;
-            font-weight: bold;
+        .history-item {
             display: flex;
-            justify-content: center;
             align-items: center;
-            padding: 4px 14px;
-            margin-bottom: clamp(10px, 2.5vh, 20px);
-            color: #1e293b;
-            letter-spacing: 2px;
+            gap: var(--space-3);
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-lg);
+            background: var(--color-surface-2);
+            margin-bottom: var(--space-2);
+            cursor: pointer;
+            border: 1px solid var(--color-border);
+            transition: background var(--transition), transform var(--transition);
+        }
+
+        .history-item:hover {
+            background: var(--color-key-bg);
+        }
+
+        .history-item:active {
+            transform: scale(0.98);
+        }
+
+        .history-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .history-icon.out {
+            background: oklch(from #22c55e l c h / 0.12);
+        }
+
+        .history-icon.in {
+            background: oklch(from #667eea l c h / 0.12);
+        }
+
+        .history-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-num {
+            font-size: var(--text-sm);
+            font-weight: 600;
+            color: var(--color-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-dur {
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+            margin-top: 1px;
+        }
+
+        .history-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: var(--space-6) var(--space-4);
+            color: var(--color-text-faint);
+            gap: var(--space-2);
+        }
+
+        .history-empty svg {
+            opacity: 0.4;
+        }
+
+        .history-empty p {
+            font-size: var(--text-xs);
+        }
+
+        /* DIALER BOTTOM */
+        .dialer-bottom {
+            flex-shrink: 0;
+            background: var(--color-surface-2);
+            border-top: 1px solid var(--color-border);
+            border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
+            padding: var(--space-4) var(--space-4) clamp(var(--space-4), 3.5vh, var(--space-6));
+            display: flex;
+            flex-direction: column;
+            gap: clamp(var(--space-3), 2.5vh, var(--space-5));
+        }
+
+        /* NUMBER BAR */
+        .number-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: clamp(48px, 9vh, 62px);
+            background: var(--color-bg);
+            border: 1.5px solid var(--color-divider);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2) var(--space-4);
+            font-size: clamp(1.3rem, 5vw, 1.75rem);
+            font-weight: 700;
+            color: var(--color-text);
+            letter-spacing: 0.06em;
             overflow: hidden;
             white-space: nowrap;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .number-bar.has-number {
+            border-color: var(--color-brand-from);
+            box-shadow: 0 0 0 3px oklch(from #667eea l c h / 0.10);
+        }
+
+        .number-bar .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background: var(--color-brand-from);
+            border-radius: 2px;
+            margin-left: 2px;
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0
+            }
         }
 
         /* KEYPAD */
         .keypad {
-            flex-shrink: 0;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: clamp(8px, 2.5vw, 15px);
-            width: 90%;
-            max-width: 260px;
-            margin: 0 auto clamp(10px, 2.5vh, 20px) auto;
+            gap: clamp(var(--space-2), 2.5vw, var(--space-4));
         }
 
-        /* KEYS */
         .key {
-            width: clamp(44px, 13vw, 64px);
-            height: clamp(44px, 13vw, 64px);
-            background: #cbd5e1;
-            border-radius: 50%;
+            aspect-ratio: 1;
+            max-width: 80px;
+            max-height: 80px;
+            width: 100%;
+            margin: 0 auto;
+            background: var(--color-key-bg);
+            border-radius: var(--radius-full);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: clamp(16px, 4.5vw, 22px);
-            color: #333;
-            margin: 0 auto;
+            gap: 1px;
             cursor: pointer;
             user-select: none;
-            transition: background 0.15s, transform 0.1s;
+            box-shadow: var(--shadow-key);
+            border: 1px solid oklch(from #667eea l c h / 0.08);
+            transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+        }
+
+        .key:hover {
+            background: var(--color-key-hover);
+            box-shadow: 0 4px 12px oklch(0.25 0.08 280 / 0.15);
         }
 
         .key:active {
-            background: #94a3b8;
-            transform: scale(0.92);
+            background: var(--color-key-active);
+            transform: scale(0.91);
+            box-shadow: none;
         }
 
-        /* Wrapper for Call and Remove buttons */
-        .action-buttons {
-            flex-shrink: 0;
+        .key-digit {
+            font-size: clamp(1.1rem, 4.5vw, 1.5rem);
+            font-weight: 700;
+            color: var(--color-text);
+            line-height: 1;
+        }
+
+        .key-alpha {
+            font-size: clamp(0.45rem, 1.5vw, 0.6rem);
+            font-weight: 600;
+            color: var(--color-text-muted);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+
+        /* ACTION ROW */
+        .action-row {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: clamp(20px, 8vw, 40px);
-            padding-bottom: clamp(5px, 1.5vh, 12px);
-        }
-
-        .call-btn,
-        .remove-btn {
-            width: clamp(54px, 14vw, 68px);
-            height: clamp(54px, 14vw, 68px);
-            border-radius: 50%;
-            border: none;
-            font-size: clamp(20px, 5.5vw, 26px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            color: white;
-            transition: transform 0.15s;
+            gap: clamp(var(--space-8), 12vw, var(--space-10));
         }
 
         .call-btn {
-            background: #22c55e;
+            width: clamp(60px, 16vw, 72px);
+            height: clamp(60px, 16vw, 72px);
+            border-radius: var(--radius-full);
+            background: var(--color-call);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 0 0 var(--color-call-ring), var(--shadow-btn);
+            transition: transform var(--transition), background var(--transition), box-shadow var(--transition);
         }
 
-        .remove-btn {
-            background: #94a3b8;
+        .call-btn:hover {
+            background: var(--color-call-hover);
+            transform: scale(1.06);
+            box-shadow: 0 0 0 6px var(--color-call-ring), var(--shadow-btn);
         }
 
-        .call-btn:active,
-        .remove-btn:active {
+        .call-btn:active {
+            transform: scale(0.94);
+        }
+
+        .call-btn svg {
+            width: clamp(24px, 6vw, 30px);
+            height: clamp(24px, 6vw, 30px);
+        }
+
+        .del-btn {
+            width: clamp(52px, 14vw, 62px);
+            height: clamp(52px, 14vw, 62px);
+            border-radius: var(--radius-full);
+            background: var(--color-del);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid oklch(from #667eea l c h / 0.08);
+            box-shadow: var(--shadow-key);
+            transition: background var(--transition), transform var(--transition);
+        }
+
+        .del-btn:hover {
+            background: var(--color-del-hover);
+        }
+
+        .del-btn:active {
             transform: scale(0.92);
+            background: var(--color-key-active);
+        }
+
+        .del-btn svg {
+            width: clamp(20px, 5vw, 26px);
+            height: clamp(20px, 5vw, 26px);
         }
 
         /* CALL SCREEN */
-        .call-screen {
+        #callScreen {
             display: none;
+            flex-direction: column;
+            align-items: center;
             text-align: center;
         }
 
-        .call-top {
-            margin-top: clamp(10px, 3vh, 20px);
-        }
-
-        #status {
-            font-size: clamp(13px, 3.5vw, 16px);
-            color: #64748b;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        #callUser {
-            font-size: clamp(18px, 5vw, 26px);
-            color: #333;
-            letter-spacing: 1px;
-        }
-
-        /* Center Logo Container */
-        .call-center {
+        .call-screen-inner {
             flex: 1;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: space-around;
+            padding: clamp(var(--space-5), 5vh, var(--space-8)) var(--space-5);
+            width: 100%;
         }
 
-        .logo-a {
-            width: clamp(90px, 25vw, 130px);
-            height: clamp(90px, 25vw, 130px);
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+        .call-avatar {
+            width: clamp(90px, 22vw, 120px);
+            height: clamp(90px, 22vw, 120px);
+            border-radius: var(--radius-full);
+            background: linear-gradient(135deg, var(--color-brand-from), var(--color-brand-to));
             color: white;
-            font-size: clamp(40px, 12vw, 65px);
-            font-weight: bold;
+            font-size: clamp(2.5rem, 10vw, 3.5rem);
+            font-weight: 800;
             display: flex;
-            justify-content: center;
             align-items: center;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            justify-content: center;
+            box-shadow: 0 0 0 10px oklch(from #667eea l c h / 0.10), var(--shadow-btn);
         }
 
-        /* Call Actions */
+        .call-name {
+            font-size: clamp(1.2rem, 5vw, 1.6rem);
+            font-weight: 700;
+            color: var(--color-text);
+        }
+
+        .call-status {
+            font-size: var(--text-sm);
+            color: var(--color-text-muted);
+            font-weight: 500;
+            margin-top: var(--space-1);
+        }
+
         .call-actions {
             display: flex;
-            justify-content: center;
-            gap: clamp(12px, 5vw, 24px);
-            margin-bottom: clamp(10px, 2.5vh, 20px);
-        }
-
-        .btn {
-            width: clamp(52px, 14vw, 66px);
-            height: clamp(52px, 14vw, 66px);
-            border-radius: 50%;
-            border: none;
-            font-size: clamp(18px, 5vw, 24px);
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
+            gap: clamp(var(--space-5), 8vw, var(--space-8));
             align-items: center;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            transition: transform 0.15s;
         }
 
-        .btn:active {
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .action-circle {
+            width: clamp(52px, 14vw, 64px);
+            height: clamp(52px, 14vw, 64px);
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform var(--transition), background var(--transition);
+        }
+
+        .action-circle:hover {
+            transform: scale(1.08);
+        }
+
+        .action-circle:active {
             transform: scale(0.92);
         }
 
-        .mute,
-        .speaker {
-            background: #cbd5e1;
-            color: #333;
+        .action-circle.mute {
+            background: var(--color-key-bg);
         }
 
-        .end {
+        .action-circle.speaker {
+            background: var(--color-key-bg);
+        }
+
+        .action-circle.end {
             background: #ef4444;
+            box-shadow: 0 4px 16px oklch(from #ef4444 l c h / 0.35);
+        }
+
+        .action-circle svg {
+            width: clamp(20px, 5vw, 26px);
+            height: clamp(20px, 5vw, 26px);
+        }
+
+        .action-circle.end svg {
             color: white;
         }
 
-        /* ===================== INCOMING CALL ===================== */
+        .action-label {
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+            font-weight: 500;
+        }
+
+        /* INCOMING CALL */
         .incoming-box {
             display: none;
             position: fixed;
-            bottom: clamp(10px, 3vh, 20px);
-            right: clamp(10px, 3vw, 20px);
-            background: #1e293b;
+            bottom: clamp(var(--space-4), 3vh, var(--space-6));
+            right: clamp(var(--space-4), 3vw, var(--space-6));
+            background: #1e1b2e;
             color: white;
-            padding: clamp(12px, 3vw, 20px);
-            border-radius: 12px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
-            z-index: 100;
+            padding: var(--space-4) var(--space-5);
+            border-radius: var(--radius-xl);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            z-index: 200;
             min-width: 200px;
             max-width: 90vw;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
-        #incomingNum {
-            font-size: clamp(13px, 3.5vw, 15px);
+        .incoming-label {
+            font-size: var(--text-xs);
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: var(--space-1);
+        }
+
+        .incoming-num {
+            font-size: var(--text-base);
+            font-weight: 700;
         }
 
         .incoming-actions {
-            margin-top: 12px;
             display: flex;
-            gap: 10px;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
         }
 
-        .accept,
-        .reject {
-            padding: 9px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
+        .inc-btn {
             flex: 1;
-            font-size: clamp(13px, 3.5vw, 15px);
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-sm);
+            font-weight: 600;
+            transition: transform var(--transition);
         }
 
-        .accept {
-            background: #22c55e;
+        .inc-btn:active {
+            transform: scale(0.96);
+        }
+
+        .inc-btn.accept {
+            background: var(--color-call);
             color: white;
         }
 
-        .reject {
+        .inc-btn.reject {
             background: #ef4444;
             color: white;
         }
 
-        /* ===================== EXTRA: very small screens (< 380px) ===================== */
-        @media (max-height: 600px) {
+
+        @media (max-height: 620px) {
             .history {
-                max-height: 60px;
+                max-height: 55px;
             }
 
-            #number {
-                min-height: 38px;
-                font-size: 18px;
-                margin-bottom: 8px;
+            .dialer-bottom {
+                gap: var(--space-2);
+                padding: var(--space-3) var(--space-4);
             }
 
-            .keypad {
-                gap: 6px;
-                margin-bottom: 8px;
-            }
-
-            .key {
-                width: 42px;
-                height: 42px;
-                font-size: 15px;
-            }
-
-            .call-btn,
-            .remove-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 18px;
-            }
-
-            .action-buttons {
-                padding-bottom: 4px;
+            .number-bar {
+                min-height: 40px;
+                font-size: 1.1rem;
             }
         }
 
-        @media (max-width: 320px) {
+        @media (max-width: 340px) {
             .key {
-                width: 40px;
-                height: 40px;
-                font-size: 14px;
-            }
-
-            .keypad {
-                gap: 8px;
-                max-width: 160px;
-            }
-
-            .call-btn,
-            .remove-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 18px;
+                max-width: 66px;
             }
         }
     </style>
@@ -491,15 +703,14 @@
     <!-- LOGIN -->
     <div id="login">
         <h2>Phone Login</h2>
-
         <div class="login-box">
-            <input type="text" id="phone" placeholder="Enter 10-digit number" maxlength="10">
-            <button onclick="sendOTP()">Send OTP</button>
+            <input type="tel" id="phone" placeholder="Enter 10-digit number" maxlength="10" inputmode="numeric">
+            <button class="login-btn" onclick="sendOTP()">Send OTP</button>
         </div>
 
         <div id="otpBox" class="hidden">
-            <input type="text" id="otp" placeholder="Enter OTP" />
-            <button onclick="verifyOTP()">Verify OTP</button>
+            <input type="tel" id="otp" placeholder="Enter OTP" inputmode="numeric">
+            <button class="login-btn" onclick="verifyOTP()">Verify OTP</button>
         </div>
 
         <div id="recaptcha-container"></div>
@@ -508,7 +719,7 @@
 
     <!-- APP -->
     <div id="app">
-        <div class="container">
+        <div class="container">`
             <!-- Sidebar -->
             <div class="sidebar">
                 <h2>DialBridge</h2>
@@ -520,77 +731,150 @@
                 <!-- Dialer -->
                 <div id="dialer" class="card">
                     <!-- CALL HISTORY -->
+                    <!-- History (scrollable) -->
                     <div class="history">
-                        <h3>Recent</h3>
-                        <div id="historyList"></div>
+                        <div class="history-header">Recent</div>
+                        <div id="historyList">
+                            <div class="history-empty">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.5">
+                                    <path
+                                        d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+                                </svg>
+                                <p>No recent calls</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- PHONE NUMBER DISPLAY -->
-                    <div id="number" class="display"></div>
+                    <!-- Bottom: display + keypad + actions -->
+                    <div class="dialer-bottom">
 
-                    <!-- KEYPAD -->
-                    <div class="keypad">
-                        <div class="key" onclick="press('1')">1</div>
-                        <div class="key" onclick="press('2')">2</div>
-                        <div class="key" onclick="press('3')">3</div>
-                        <div class="key" onclick="press('4')">4</div>
-                        <div class="key" onclick="press('5')">5</div>
-                        <div class="key" onclick="press('6')">6</div>
-                        <div class="key" onclick="press('7')">7</div>
-                        <div class="key" onclick="press('8')">8</div>
-                        <div class="key" onclick="press('9')">9</div>
-                        <div class="key" onclick="press('*')">*</div>
-                        <div class="key" onclick="press('0')">0</div>
-                        <div class="key" onclick="press('#')">#</div>
-                    </div>
+                        <!-- Number display bar -->
+                        <div id="number" class="number-bar">
+                            <span id="numberText"></span>
+                            <span class="cursor" id="cursor" style="display:none"></span>
+                        </div>
 
-                    <!-- ACTION BUTTONS -->
-                    <div class="action-buttons">
-                        <button class="call-btn" onclick="makeCall()">📞</button>
-                        <button class="remove-btn" onclick="removeNumber()">⌫</button>
+                        <!-- Keypad -->
+                        <div class="keypad">
+                            <div class="key" onclick="press('1')"><span class="key-digit">1</span><span
+                                    class="key-alpha">&nbsp;</span></div>
+                            <div class="key" onclick="press('2')"><span class="key-digit">2</span><span
+                                    class="key-alpha">ABC</span></div>
+                            <div class="key" onclick="press('3')"><span class="key-digit">3</span><span
+                                    class="key-alpha">DEF</span></div>
+                            <div class="key" onclick="press('4')"><span class="key-digit">4</span><span
+                                    class="key-alpha">GHI</span></div>
+                            <div class="key" onclick="press('5')"><span class="key-digit">5</span><span
+                                    class="key-alpha">JKL</span></div>
+                            <div class="key" onclick="press('6')"><span class="key-digit">6</span><span
+                                    class="key-alpha">MNO</span></div>
+                            <div class="key" onclick="press('7')"><span class="key-digit">7</span><span
+                                    class="key-alpha">PQRS</span></div>
+                            <div class="key" onclick="press('8')"><span class="key-digit">8</span><span
+                                    class="key-alpha">TUV</span></div>
+                            <div class="key" onclick="press('9')"><span class="key-digit">9</span><span
+                                    class="key-alpha">WXYZ</span></div>
+                            <div class="key" onclick="press('*')"><span class="key-digit">*</span><span
+                                    class="key-alpha">&nbsp;</span></div>
+                            <div class="key" onclick="press('0')"><span class="key-digit">0</span><span
+                                    class="key-alpha">+</span></div>
+                            <div class="key" onclick="press('#')"><span class="key-digit">#</span><span
+                                    class="key-alpha">&nbsp;</span></div>
+                        </div>
+
+                        <!-- Call + Delete -->
+                        <div class="action-row">
+                            <!-- Delete -->
+                            <button class="del-btn" onclick="removeNumber()" aria-label="Delete digit">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round"
+                                    style="color:var(--color-text-muted)">
+                                    <path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z" />
+                                    <line x1="18" y1="9" x2="13" y2="14" />
+                                    <line x1="13" y1="9" x2="18" y2="14" />
+                                </svg>
+                            </button>
+
+                            <!-- Call -->
+                            <button class="call-btn" onclick="makeCall()" aria-label="Make call">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path
+                                        d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+                                </svg>
+                            </button>
+                        </div>
+
                     </div>
                 </div>
 
-                <!-- Call Screen -->
-                <div id="callScreen" class="card call-screen">
-                    <!-- Top Section: Status and Number -->
-                    <div class="call-top">
-                        <p id="status">Ringing...</p>
-                        <h2 id="callUser"></h2>
+                <!-- CALL SCREEN -->
+                <div id="callScreen" class="card call-screen-inner">
+                    <div>
+                        <div class="call-avatar" id="callAvatar">A</div>
                     </div>
-
-                    <!-- Center Section: Logo -->
-                    <div class="call-center">
-                        <div class="logo-a">A</div>
+                    <div>
+                        <div class="call-name" id="callUser"></div>
+                        <div class="call-status" id="status">Ringing...</div>
                     </div>
-
-                    <!-- Bottom Section: Actions -->
                     <div class="call-actions">
-                        <button class="btn mute">🔇</button>
-                        <button class="btn speaker">🔊</button>
-                        <button class="btn end" onclick="endCall()">📞</button>
+                        <div class="action-btn">
+                            <button class="action-circle mute" aria-label="Mute">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round"
+                                    style="color:var(--color-text-muted)">
+                                    <line x1="1" y1="1" x2="23" y2="23" />
+                                    <path
+                                        d="M9 9v3a3 3 0 005.12 2.12M15 9.34V4a3 3 0 00-5.94-.6M17 16.95A7 7 0 015 12v-2m14 0v2a7 7 0 01-.11 1.23M12 20v4M8 20h8" />
+                                </svg>
+                            </button>
+                            <span class="action-label">Mute</span>
+                        </div>
+                        <div class="action-btn">
+                            <button class="action-circle end" onclick="endCall()" aria-label="End call">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
+                                    stroke-linecap="round" stroke-linejoin="round" style="width:28px;height:28px">
+                                    <path
+                                        d="M10.68 13.31a16 16 0 003.41 2.6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.42 19.42 0 01-3.33-2.67m-2.67-3.34a19.79 19.79 0 01-3.07-8.63A2 2 0 014 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91M23 1L1 23" />
+                                </svg>
+                            </button>
+                            <span class="action-label">End</span>
+                        </div>
+                        <div class="action-btn">
+                            <button class="action-circle speaker" aria-label="Speaker">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round"
+                                    style="color:var(--color-text-muted)">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                    <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" />
+                                </svg>
+                            </button>
+                            <span class="action-label">Speaker</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Incoming -->
+        <!-- Incoming call -->
         <div id="incoming" class="incoming-box">
-            <p id="incomingNum"></p>
+            <div class="incoming-label">Incoming call</div>
+            <div class="incoming-num" id="incomingNum"></div>
             <div class="incoming-actions">
-                <button class="accept" onclick="acceptCall()">Accept</button>
-                <button class="reject" onclick="rejectCall()">Reject</button>
+                <button class="inc-btn reject" onclick="rejectCall()">Decline</button>
+                <button class="inc-btn accept" onclick="acceptCall()">Accept</button>
             </div>
         </div>
 
         <audio id="remoteAudio" autoplay></audio>
     </div>
 
+    <!-- ======== SCRIPTS ======== -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        // import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -606,31 +890,23 @@
         const db = getFirestore(app);
         // auth.settings.appVerificationDisabledForTesting = true;
 
-        let confirmationResult;
-        let socket;
-        let myNumber;
-        let currentCallUser;
-        let number = "";
-        let callStartTime;
-        let callSeconds;
-        let callTimerInterval;
-        let caller;
+        let socket, myNumber, currentCallUser, number = "";
+        let callStartTime, callSeconds, callTimerInterval, caller;
+        let peer, localStream, iceQueue = [], isRemoteSet = false;
 
-        let peer;
-        let localStream;
-        let iceQueue = [];
-        let isRemoteSet = false;
+        const ICE_SERVERS = [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }
+        ];
 
         // window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         // size: 'invisible'
         // });
 
+        /* ---- LOGIN ---- */
         window.sendOTP = () => {
-            let phone = document.getElementById('phone').value.trim();
+            let phone = document.getElementById('phone').value.trim().replace(/\D/g, "");
             const message = document.getElementById('msg');
-
-            // Remove non-digits
-            phone = phone.replace(/\D/g, "");
 
             // Strict 10-digit validation
             if (phone.length !== 10) {
@@ -639,10 +915,8 @@
                 return;
             }
 
-            const formattedNumber = "+91" + phone;
-
             // Store temporarily
-            localStorage.setItem("tempPhone", formattedNumber);
+            localStorage.setItem("tempPhone", "+91" + phone);
 
             // UI changes
             document.querySelector('.login-box').classList.add('hidden');
@@ -693,43 +967,14 @@
             }
         };
 
-        async function loadCallHistory(userNumber) {
-            const q1 = query(collection(db, "call_logs"), where("caller", "==", userNumber));
-            const q2 = query(collection(db, "call_logs"), where("receiver", "==", userNumber));
-
-            const snap1 = await getDocs(q1);
-            const snap2 = await getDocs(q2);
-
-            let historyHTML = "";
-
-            snap1.forEach(doc => {
-                const data = doc.data();
-                historyHTML += `<div>${data.receiver} (${data.duration}s)</div>`;
-            });
-
-            snap2.forEach(doc => {
-                const data = doc.data();
-                historyHTML += `<div>${data.caller} (${data.duration}s)</div>`;
-            });
-
-            document.getElementById("historyList").innerHTML = historyHTML;
-        }
-
-        // 🔥 TURN + STUN (FINAL CONFIG)
-        const ICE_SERVERS = [
-            { urls: "stun:stun.l.google.com:19302" },
-            {
-                urls: "turn:openrelay.metered.ca:80",
-                username: "openrelayproject",
-                credential: "openrelayproject"
-            }
-        ];
-
-        // ================= SOCKET =================
+        /* ---- APP START ---- */
         function startApp() {
+            myNumber = myNumber || localStorage.getItem("userNumber");
             document.getElementById("userLabel").innerText = "You: " + myNumber;
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
+
+            loadCallHistory(myNumber);
 
             socket = io("https://dialbridge.onrender.com", {
                 query: { userId: myNumber },
@@ -746,6 +991,52 @@
             setupSocketEvents();
         }
 
+        /* ---- HISTORY ---- */
+        async function loadCallHistory(userNumber) {
+            const q1 = query(collection(db, "call_logs"), where("caller", "==", userNumber));
+            const q2 = query(collection(db, "call_logs"), where("receiver", "==", userNumber));
+
+            const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+
+            const historyHTML = [];
+
+            snap1.forEach(doc => {
+                const data = doc.data();
+                historyHTML.push({ num: data.receiver, dur: data.duration, type: "out", ts: data.timestamp });
+            });
+
+            snap2.forEach(doc => {
+                const data = doc.data();
+                historyHTML.push({ num: data.caller, dur: data.duration, type: "in", ts: data.timestamp });
+            });
+            historyHTML.sort((a, b) => b.ts - a.ts);
+
+            const list = document.getElementById("historyList");
+            if (!historyHTML.length) {
+                list.innerHTML = `<div class="history-empty">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+                </svg>
+                <p>No recent calls</p></div>`;
+                return;
+            }
+
+            list.innerHTML = historyHTML.map(item => `
+            <div class="history-item" onclick="dialFromHistory('${item.num}')">
+                <div class="history-icon ${item.type}">${item.type === "out" ? "↗" : "↙"}</div>
+                <div class="history-info">
+                    <div class="history-num">${item.num}</div>
+                    <div class="history-dur">${item.type === "out" ? "Outgoing" : "Incoming"} · ${item.dur}s</div>
+                </div>
+            </div>`).join("");
+        }
+
+        window.dialFromHistory = (num) => {
+            number = num.replace("+91", "");
+            updateDisplay();
+        };
+
+        /* ---- SOCKET EVENTS ---- */
         function setupSocketEvents() {
             socket.on("incoming-call", (data) => {
                 caller = data.from;
@@ -789,21 +1080,16 @@
 
             socket.on("user-offline", () => {
                 alert("User is offline");
-                // resetUI();
             });
         }
 
+        /* ---- TIMER ---- */
         function startTimer() {
             callSeconds = 0;
-            document.getElementById('status').innerText = "00:00";
             callTimerInterval = setInterval(() => {
                 callSeconds++;
-                let mins = Math.floor(callSeconds / 60);
-                let secs = callSeconds % 60;
-
-                // Format to "MM:SS"
-                mins = mins < 10 ? '0' + mins : mins;
-                secs = secs < 10 ? '0' + secs : secs;
+                const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+                const secs = String(callSeconds % 60).padStart(2, '0');
 
                 document.getElementById('status').innerText = `${mins}:${secs}`;
             }, 1000);
@@ -814,25 +1100,37 @@
             callSeconds = 0;
         }
 
-        // DIALER
+        /* ---- DIALER ---- */
+        function updateDisplay() {
+            const text = document.getElementById('numberText');
+            const cursor = document.getElementById('cursor');
+            const bar = document.getElementById('number');
+            if (number) {
+                text.innerText = "+91 " + number;
+                cursor.style.display = 'inline-block';
+                bar.classList.add('has-number');
+            } else {
+                text.innerText = "";
+                cursor.style.display = 'none';
+                bar.classList.remove('has-number');
+            }
+        }
+
         window.press = (n) => {
             number += n;
-            document.getElementById('number').innerText = "+91" + number;
+            updateDisplay();
         };
 
-        // REMOVE NUMBER FUNCTION
         window.removeNumber = () => {
             if (!number) return;
             number = number.slice(0, -1);
-            document.getElementById('number').innerText = number ? "+91" + number : "";
+            updateDisplay();
         };
 
-        // ================= CALL FLOW =================
+        /* ---- CALL FLOW ---- */
         window.makeCall = () => {
-            callStartTime = Date.now();
-
             if (!number) return;
-
+            callStartTime = Date.now();
             currentCallUser = "+91" + number;
 
             socket.emit("call-user", {
@@ -851,8 +1149,6 @@
 
             document.getElementById('incoming').style.display = 'none';
 
-            // document.getElementById('callUser').innerText = currentCallUser;
-
             showCallScreen("Connecting...");
             startTimer();
             await startWebRTC(false);
@@ -870,27 +1166,18 @@
         window.endCall = async () => {
             socket.emit("end-call", { to: currentCallUser, from: myNumber });
 
-            let duration = Math.floor((Date.now() - callStartTime) / 1000);
+            const duration = Math.floor((Date.now() - callStartTime) / 1000);
 
             await saveCallLog(myNumber, currentCallUser, duration);
 
             await loadCallHistory(myNumber);
 
             cleanupCall();
-            stopTimer(); // Stop timer when you hang up
+            stopTimer();
             resetUI();
         };
 
-        window.addEventListener("beforeunload", async () => {
-            if (myNumber) {
-                await setDoc(doc(db, "users", myNumber), {
-                    online: false,
-                    lastSeen: Date.now()
-                }, { merge: true });
-            }
-        });
-
-        // ================= WEBRTC =================
+        /* ---- WEBRTC ---- */
         async function startWebRTC(isCaller) {
 
             peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -927,7 +1214,6 @@
             }
         }
 
-        // ================= SIGNALING =================
         async function handleOffer(offer) {
 
             if (!peer) await startWebRTC(false);
@@ -956,7 +1242,6 @@
             iceQueue = [];
         }
 
-        // ================= CLEANUP =================
         function cleanupCall() {
             if (peer) {
                 peer.close();
@@ -971,18 +1256,21 @@
             iceQueue = [];
         }
 
-        // ================= UI =================
+        /* ---- UI ---- */
         function showCallScreen(status) {
             document.getElementById('dialer').style.display = 'none';
             document.getElementById('callScreen').style.display = 'flex';
             document.getElementById('status').innerText = status;
+            document.getElementById('callUser').innerText = currentCallUser;
+            const letter = (currentCallUser || "?")[0].toUpperCase();
+            document.getElementById('callAvatar').innerText = /\+\d/.test(letter) ? "📞" : letter;
         }
 
         function resetUI() {
             document.getElementById('dialer').style.display = 'flex';
             document.getElementById('callScreen').style.display = 'none';
             number = "";
-            document.getElementById('number').innerText = number;
+            updateDisplay();
         }
 
         async function saveCallLog(caller, receiver, duration) {
@@ -993,7 +1281,6 @@
                     duration,
                     timestamp: Date.now()
                 });
-                console.log("Call saved");
             } catch (err) {
                 console.error("Error saving call:", err);
             }
