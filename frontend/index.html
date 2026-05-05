@@ -233,9 +233,21 @@
             overflow: hidden;
         }
 
+        .tab-switch {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .tab-switch input {
+            margin-right: 6px;
+        }
+
         /* HISTORY */
         .history {
-            flex: 1;
             min-height: 0;
             overflow-y: auto;
             padding: var(--space-4) var(--space-4) var(--space-3);
@@ -744,6 +756,16 @@
             <div class="main">
                 <!-- Dialer -->
                 <div id="dialer" class="card">
+                    <div class="tab-switch">
+                        <label>
+                            <input type="radio" name="tab" value="dialpad" checked onclick="switchTab('dialpad')">
+                            Dialpad
+                        </label>
+                        <label>
+                            <input type="radio" name="tab" value="history" onclick="switchTab('history')">
+                            Recent
+                        </label>
+                    </div>
                     <!-- CALL HISTORY -->
                     <!-- History (scrollable) -->
                     <div class="history">
@@ -937,6 +959,19 @@
             location.reload();
         };
 
+        window.switchTab = (tab) => {
+            const history = document.getElementById("historySection");
+            const dialpad = document.getElementById("dialpadSection");
+
+            if (tab === "history") {
+                history.style.display = "block";
+                dialpad.style.display = "none";
+            } else {
+                history.style.display = "none";
+                dialpad.style.display = "block";
+            }
+        };
+
         let socket, myNumber, currentCallUser, number = "";
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
@@ -1041,6 +1076,8 @@
 
             const userStatusRef = ref(rtdb, "status/" + myNumber);
 
+            switchTab("dialpad");
+
             // ONLINE
             await set(userStatusRef, {
                 online: true,
@@ -1138,8 +1175,13 @@
         window.dialFromHistory = (num) => {
             number = num.replace("+91", "");
             updateDisplay();
+
+            // switch to dialpad automatically
+            switchTab("dialpad");
+
+            // also update radio button UI
+            document.querySelector("input[value='dialpad']").checked = true;
         };
-        // number = formatPhone(num);
 
         /* ---- SOCKET EVENTS ---- */
         function setupSocketEvents() {
