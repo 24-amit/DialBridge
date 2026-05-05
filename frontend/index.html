@@ -227,6 +227,7 @@
             width: 100%;
             max-width: 400px;
             height: 100%;
+            min-height: 0;
             display: flex;
             flex-direction: column;
             box-shadow: var(--shadow-card);
@@ -257,10 +258,11 @@
         .history {
             left: 0;
             width: 100%;
-            max-height: 50%;
+            min-height: 0;
             flex: 1;
             display: none;
             flex-direction: column;
+            overflow: hidden;
             overflow-y: auto;
             background: var(--color-surface);
             border-top: 1px solid var(--color-border);
@@ -271,7 +273,7 @@
         .history-list {
             flex: 1;
             overflow-y: auto;
-            padding: var(--space-2) var(--space-4) var(--space-3);
+            padding: var(--space-2) var(--space-4);
         }
 
         .history::-webkit-scrollbar {
@@ -284,6 +286,9 @@
         }
 
         .history-header {
+            position: sticky;
+            top: 0;
+            z-index: 5;
             font-size: var(--text-sm);
             font-weight: 700;
             color: var(--color-text-muted);
@@ -847,10 +852,9 @@
                         <!-- Call + Delete -->
                         <div class="action-row">
                             <!-- Delete -->
-                            <button class="del-btn" onclick="removeNumber()" onmousedown="startDeleteHold()"
-                                onmouseup="stopDeleteHold()" onmouseleave="stopDeleteHold()"
-                                ontouchstart="startDeleteHold()" ontouchend="stopDeleteHold()"
-                                aria-label="Delete digit">
+                            <button class="del-btn" onmousedown="startDeleteHold(event)" onmouseup="stopDeleteHold()"
+                                onmouseleave="stopDeleteHold()" ontouchstart="startDeleteHold(event)"
+                                ontouchend="stopDeleteHold()" onclick="handleDeleteClick(event)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round"
                                     style="color:var(--color-text-muted)">
@@ -1006,7 +1010,8 @@
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
         let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
-        let deleteHoldTimer = null;
+        let deleteTimer = null;
+        let isLongPress = false;
 
         const UI = {
             showDialer() {
@@ -1347,17 +1352,30 @@
             updateDisplay();
         };
 
-        // LONG PRESS START
-        function startDeleteHold() {
-            deleteHoldTimer = setTimeout(() => {
-                number = ""; // clear full number
+        // START HOLD
+        function startDeleteHold(e) {
+            e.preventDefault(); // IMPORTANT for mobile
+
+            isLongPress = false;
+
+            deleteTimer = setTimeout(() => {
+                number = "";
                 updateDisplay();
-            }, 500); // 500ms = long press
+                isLongPress = true;
+            }, 500);
+        }
+        // END HOLD
+        function stopDeleteHold() {
+            clearTimeout(deleteTimer);
         }
 
-        // LONG PRESS END
-        function stopDeleteHold() {
-            clearTimeout(deleteHoldTimer);
+        // CLICK (only if not long press)
+        function handleDeleteClick(e) {
+            if (isLongPress) {
+                e.preventDefault();
+                return;
+            }
+            removeNumber();
         }
 
         /* ---- CALL FLOW ---- */
