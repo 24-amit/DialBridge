@@ -900,6 +900,10 @@
             appId: "1:112453752302:web:180ceeb4b00997cfa7eaff"
         };
 
+        const formatPhone = (num) => {
+            return num ? num.replace(/^\+91\s?/, "") : "";
+        };
+
         const app = initializeApp(firebaseConfig);
         // const auth = getAuth(app);
         const db = getFirestore(app);
@@ -1056,7 +1060,7 @@
                 });
             }, 10000);
 
-            document.getElementById("userLabel").innerText = "You: " + myNumber;
+            document.getElementById("userLabel").innerText = "You: " + formatPhone(myNumber);
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
 
@@ -1120,7 +1124,7 @@
             ${item.type === "out" ? "↗" : "↙"}
         </div>
         <div class="history-info">
-            <div class="history-num">${item.num}</div>
+            <div class="history-num">${formatPhone(item.num)}</div>
             <div class="history-dur">
                 ${item.dur}s • ${formatted}
             </div>
@@ -1131,10 +1135,11 @@
             });
         }
 
-        window.dialFromHistory = (num) => {
-            number = num.replace("+91", "");
-            updateDisplay();
-        };
+        // window.dialFromHistory = (num) => {
+        //     number = num.replace("+91", "");
+        //     updateDisplay();
+        // };
+        number = formatPhone(num);
 
         /* ---- SOCKET EVENTS ---- */
         function setupSocketEvents() {
@@ -1149,7 +1154,7 @@
                 CALL_STATE = "RINGING"; // ✅ HERE
 
                 caller = data.from;
-                document.getElementById('incomingNum').innerText = data.from;
+                document.getElementById('incomingNum').innerText = formatPhone(data.from);
                 document.getElementById('incoming').style.display = 'block';
             });
 
@@ -1247,7 +1252,7 @@
             const cursor = document.getElementById('cursor');
             const bar = document.getElementById('number');
             if (number) {
-                text.innerText = "+91 " + number;
+                text.innerText = number;
                 cursor.style.display = 'inline-block';
                 bar.classList.add('has-number');
             } else {
@@ -1351,7 +1356,7 @@
         /* ---- WEBRTC ---- */
         async function startWebRTC(isCaller) {
             if (peer) cleanupCall();
-            
+
             try {
                 peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
@@ -1460,7 +1465,7 @@
         function showCallScreen(status) {
             UI.showCallScreen();
             document.getElementById('status').innerText = status;
-            document.getElementById('callUser').innerText = currentCallUser;
+            document.getElementById('callUser').innerText = formatPhone(currentCallUser);
 
             const letter = (currentCallUser || "?")[0].toUpperCase();
             document.getElementById('callAvatar').innerText =
