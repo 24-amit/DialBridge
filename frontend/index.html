@@ -1003,11 +1003,6 @@
 
             const userStatusRef = ref(rtdb, "status/" + myNumber);
 
-            await set(userStatusRef, {
-                online: false,
-                lastSeen: Date.now()
-            });
-
             Store.removeItem("userNumber");
             location.reload();
         };
@@ -1161,8 +1156,6 @@
                 online: false,
                 lastSeen: Date.now()
             });
-
-            onDisconnect(userStatusRef).remove();
 
             // HEARTBEAT
             setInterval(() => {

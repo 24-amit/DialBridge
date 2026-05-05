@@ -45,12 +45,6 @@ io.on("connection", async (socket) => {
     const snap = await db.ref("status/" + userId).once("value");
     const data = snap.val();
 
-    // 🚫 BLOCK IF SESSION INVALID
-    if (!data || data.sessionId !== sessionId) {
-      socket.disconnect(true);
-      return;
-    }
-
     // 🔥 Kick old session if exists
     const oldSocketId = onlineUsers.get(userId);
     if (oldSocketId && oldSocketId !== socket.id) {
