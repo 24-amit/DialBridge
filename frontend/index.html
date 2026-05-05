@@ -852,9 +852,7 @@
                         <!-- Call + Delete -->
                         <div class="action-row">
                             <!-- Delete -->
-                            <button class="del-btn" onmousedown="startDeleteHold(event)" onmouseup="stopDeleteHold()"
-                                onmouseleave="stopDeleteHold()" ontouchstart="startDeleteHold(event)"
-                                ontouchend="stopDeleteHold()" onclick="handleDeleteClick(event)">
+                            <button class="del-btn" id="deleteBtn" onclick="removeNumber()" aria-label="Delete digit">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round"
                                     style="color:var(--color-text-muted)">
@@ -1010,8 +1008,10 @@
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
         let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
-        let deleteTimer = null;
-        let isLongPress = false;
+
+        const deleteBtn = document.getElementById("deleteBtn");
+        let holdTimer = null;
+        let isHolding = false;
 
         const UI = {
             showDialer() {
@@ -1353,30 +1353,35 @@
         };
 
         // START HOLD
-        function startDeleteHold(e) {
-            e.preventDefault(); // IMPORTANT for mobile
+        deleteBtn.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
 
-            isLongPress = false;
+            isHolding = false;
 
-            deleteTimer = setTimeout(() => {
+            holdTimer = setTimeout(() => {
                 number = "";
                 updateDisplay();
-                isLongPress = true;
+                isHolding = true;
             }, 500);
-        }
-        // END HOLD
-        function stopDeleteHold() {
-            clearTimeout(deleteTimer);
-        }
+        });
 
-        // CLICK (only if not long press)
-        function handleDeleteClick(e) {
-            if (isLongPress) {
-                e.preventDefault();
-                return;
+        // END HOLD
+        deleteBtn.addEventListener("pointerup", () => {
+            clearTimeout(holdTimer);
+
+            // If NOT long press → delete one digit
+            if (!isHolding) {
+                if (number.length > 0) {
+                    number = number.slice(0, -1);
+                    updateDisplay();
+                }
             }
-            removeNumber();
-        }
+        });
+
+        // Cancel if pointer leaves button
+        deleteBtn.addEventListener("pointerleave", () => {
+            clearTimeout(holdTimer);
+        });
 
         /* ---- CALL FLOW ---- */
         window.makeCall = async () => {
