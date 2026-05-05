@@ -1135,11 +1135,11 @@
             });
         }
 
-        // window.dialFromHistory = (num) => {
-        //     number = num.replace("+91", "");
-        //     updateDisplay();
-        // };
-        number = formatPhone(num);
+        window.dialFromHistory = (num) => {
+            number = num.replace("+91", "");
+            updateDisplay();
+        };
+        // number = formatPhone(num);
 
         /* ---- SOCKET EVENTS ---- */
         function setupSocketEvents() {
@@ -1252,7 +1252,7 @@
             const cursor = document.getElementById('cursor');
             const bar = document.getElementById('number');
             if (number) {
-                text.innerText = number;
+                text.innerText = "+91 " + number;
                 cursor.style.display = 'inline-block';
                 bar.classList.add('has-number');
             } else {
