@@ -768,7 +768,7 @@
                     </div>
                     <!-- CALL HISTORY -->
                     <!-- History (scrollable) -->
-                    <div class="history">
+                    <div class="history" id="historySection">
                         <div class="history-header">Recent</div>
                         <div id="historyList">
                             <div class="history-empty">
@@ -783,7 +783,7 @@
                     </div>
 
                     <!-- Bottom: display + keypad + actions -->
-                    <div class="dialer-bottom">
+                    <div class="dialer-bottom" id="dialpadSection">
 
                         <!-- Number display bar -->
                         <div id="number" class="number-bar">
@@ -963,12 +963,17 @@
             const history = document.getElementById("historySection");
             const dialpad = document.getElementById("dialpadSection");
 
+            if (!history || !dialpad) {
+                console.error("Tab elements not found");
+                return;
+            }
+
             if (tab === "history") {
                 history.style.display = "block";
                 dialpad.style.display = "none";
             } else {
                 history.style.display = "none";
-                dialpad.style.display = "block";
+                dialpad.style.display = "flex";
             }
         };
 
