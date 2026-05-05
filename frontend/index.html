@@ -259,14 +259,19 @@
             width: 100%;
             max-height: 50%;
             flex: 1;
-            /* min-height: 0; */
+            display: none;
+            flex-direction: column;
             overflow-y: auto;
             background: var(--color-surface);
             border-top: 1px solid var(--color-border);
-            /* border-radius: var(--radius-xl) var(--radius-xl) 0 0; */
             padding: var(--space-4) var(--space-4) var(--space-3);
-            display: none;
             transition: transform 0.25s ease;
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-2) var(--space-4) var(--space-3);
         }
 
         .history::-webkit-scrollbar {
@@ -284,11 +289,10 @@
             color: var(--color-text-muted);
             letter-spacing: 0.07em;
             text-transform: uppercase;
-            position: sticky;
-            top: 0;
+            padding: var(--space-3) var(--space-4);
             background: var(--color-surface);
-            padding-bottom: var(--space-2);
-            margin-bottom: var(--space-2);
+            border-bottom: 1px solid var(--color-border);
+            flex-shrink: 0;
         }
 
         .history-item {
@@ -472,6 +476,9 @@
             font-weight: 700;
             color: var(--color-text);
             line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .key-alpha {
@@ -788,7 +795,7 @@
                     <!-- History (scrollable) -->
                     <div class="history" id="historySection">
                         <div class="history-header">Recent</div>
-                        <div id="historyList">
+                        <div class="history-list" id="historyList">
                             <div class="history-empty">
                                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="1.5">
@@ -840,7 +847,10 @@
                         <!-- Call + Delete -->
                         <div class="action-row">
                             <!-- Delete -->
-                            <button class="del-btn" onclick="removeNumber()" aria-label="Delete digit">
+                            <button class="del-btn" onclick="removeNumber()" onmousedown="startDeleteHold()"
+                                onmouseup="stopDeleteHold()" onmouseleave="stopDeleteHold()"
+                                ontouchstart="startDeleteHold()" ontouchend="stopDeleteHold()"
+                                aria-label="Delete digit">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round"
                                     style="color:var(--color-text-muted)">
@@ -996,6 +1006,8 @@
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
         let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
+        let deleteHoldTimer = null;
+
         const UI = {
             showDialer() {
                 document.getElementById('dialer').style.display = 'flex';
@@ -1213,7 +1225,7 @@
                     return;
                 }
 
-                CALL_STATE = "RINGING"; // ✅ HERE
+                CALL_STATE = "RINGING";
 
                 caller = data.from;
                 document.getElementById('incomingNum').innerText = formatPhone(data.from);
@@ -1256,7 +1268,7 @@
             socket.on("call-ended", () => {
                 document.getElementById('status').innerText = "Call Ended";
 
-                CALL_STATE = "IDLE"; // ✅ HERE
+                CALL_STATE = "IDLE";
 
                 setTimeout(() => {
                     cleanupCall();
@@ -1334,6 +1346,19 @@
             number = number.slice(0, -1);
             updateDisplay();
         };
+
+        // LONG PRESS START
+        function startDeleteHold() {
+            deleteHoldTimer = setTimeout(() => {
+                number = ""; // clear full number
+                updateDisplay();
+            }, 500); // 500ms = long press
+        }
+
+        // LONG PRESS END
+        function stopDeleteHold() {
+            clearTimeout(deleteHoldTimer);
+        }
 
         /* ---- CALL FLOW ---- */
         window.makeCall = async () => {
