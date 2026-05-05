@@ -1136,6 +1136,8 @@
         async function startApp() {
             myNumber = myNumber || Store.getItem("userNumber");
 
+            const userStatusRef = ref(rtdb, "status/" + myNumber);
+
             // CHECK EXISTING SESSION
             const snap = await get(userStatusRef);
             const data = snap.val();
