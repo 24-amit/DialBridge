@@ -1402,19 +1402,6 @@
         // END HOLD
         deleteBtn.addEventListener("pointerup", () => {
             clearTimeout(holdTimer);
-
-            // If NOT long press → delete one digit
-            if (!isHolding) {
-                if (number.length > 0) {
-                    number = number.slice(0, -1);
-                    updateDisplay();
-                }
-            }
-        });
-
-        // Cancel if pointer leaves button
-        deleteBtn.addEventListener("pointerleave", () => {
-            clearTimeout(holdTimer);
         });
 
         /* ---- CALL FLOW ---- */
