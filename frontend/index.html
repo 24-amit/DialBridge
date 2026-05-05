@@ -1147,11 +1147,6 @@
             const snap = await get(userStatusRef);
             const data = snap.val();
 
-            if (data?.sessionId && data.sessionId !== sessionId) {
-                alert("This number is already logged in");
-                return;
-            }
-
             // SET CURRENT SESSION
             await set(userStatusRef, {
                 online: true,
@@ -1160,12 +1155,6 @@
             });
 
             switchTab("dialpad");
-
-            // ONLINE
-            await set(userStatusRef, {
-                online: true,
-                lastSeen: Date.now()
-            });
 
             // AUTO OFFLINE
             onDisconnect(userStatusRef).set({
@@ -1347,6 +1336,12 @@
                     resetUI();
                     CALL_STATE = "IDLE";
                 }
+            });
+
+            socket.on("force-logout", () => {
+                alert("Logged in from another device");
+                localStorage.removeItem("userNumber");
+                location.reload();
             });
         }
 
