@@ -749,13 +749,13 @@
         <h2>Phone Login</h2>
         <div class="login-box">
             <input type="tel" id="phone" placeholder="Enter 10-digit number" maxlength="10" inputmode="numeric"
-                autofocus>
+                enterkeyhint="done" autofocus>
             <button class="login-btn" onclick="sendOTP()">Send OTP</button>
         </div>
 
         <div id="otpBox" class="hidden">
-            <input type="tel" id="otp" placeholder="Enter OTP" inputmode="numeric" autocomplete="one-time-code"
-                autofocus>
+            <input type="tel" id="otp" placeholder="Enter OTP" inputmode="numeric" enterkeyhint="done"
+                autocomplete="one-time-code" autofocus>
             <button class="login-btn" onclick="verifyOTP()">Verify OTP</button>
         </div>
 
@@ -983,6 +983,19 @@
             setTimeout(() => {
                 phoneInput.focus();
             }, 300);
+
+            // 🔥 ENTER KEY SUPPORT
+            document.getElementById("phone").addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    sendOTP();
+                }
+            });
+
+            document.getElementById("otp").addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    verifyOTP();
+                }
+            });
         };
 
         window.logout = async () => {
@@ -1018,6 +1031,7 @@
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
         let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
+        let sessionId = crypto.randomUUID();
 
         const deleteBtn = document.getElementById("deleteBtn");
         let holdTimer = null;
@@ -1129,6 +1143,22 @@
 
             const userStatusRef = ref(rtdb, "status/" + myNumber);
 
+            // CHECK EXISTING SESSION
+            const snap = await get(userStatusRef);
+            const data = snap.val();
+
+            if (data?.sessionId && data.sessionId !== sessionId) {
+                alert("This number is already logged in");
+                return;
+            }
+
+            // SET CURRENT SESSION
+            await set(userStatusRef, {
+                online: true,
+                lastSeen: Date.now(),
+                sessionId: sessionId
+            });
+
             switchTab("dialpad");
 
             // ONLINE
@@ -1142,6 +1172,8 @@
                 online: false,
                 lastSeen: Date.now()
             });
+
+            onDisconnect(userStatusRef).remove();
 
             // HEARTBEAT
             setInterval(() => {
@@ -1157,7 +1189,7 @@
             loadCallHistory(myNumber);
 
             socket = io("https://dialbridge.onrender.com", {
-                query: { userId: myNumber },
+                query: { userId: myNumber, sessionId: sessionId },
                 transports: ["websocket"]
             });
 

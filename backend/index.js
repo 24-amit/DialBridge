@@ -25,7 +25,17 @@ app.get("/", (req, res) => {
 
 const onlineUsers = new Map();
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
+    const { userId, sessionId } = socket.handshake.query;
+
+    const snap = await db.ref("status/" + userId).once("value");
+    const data = snap.val();
+
+    if (!data || data.sessionId !== sessionId) {
+        socket.disconnect(true);
+        return;
+    }
+
     console.log("User connected:", socket.id);
 
     socket.on("register", (phone) => {
