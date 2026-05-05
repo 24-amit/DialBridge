@@ -748,12 +748,14 @@
     <div id="login">
         <h2>Phone Login</h2>
         <div class="login-box">
-            <input type="tel" id="phone" placeholder="Enter 10-digit number" maxlength="10" inputmode="numeric">
+            <input type="tel" id="phone" placeholder="Enter 10-digit number" maxlength="10" inputmode="numeric"
+                autofocus>
             <button class="login-btn" onclick="sendOTP()">Send OTP</button>
         </div>
 
         <div id="otpBox" class="hidden">
-            <input type="tel" id="otp" placeholder="Enter OTP" inputmode="numeric">
+            <input type="tel" id="otp" placeholder="Enter OTP" inputmode="numeric" autocomplete="one-time-code"
+                autofocus>
             <button class="login-btn" onclick="verifyOTP()">Verify OTP</button>
         </div>
 
@@ -972,7 +974,15 @@
             if (savedUser) {
                 myNumber = savedUser;
                 startApp(); // auto login
+                return;
             }
+
+            // Focus phone input (desktop + some Android)
+            const phoneInput = document.getElementById("phone");
+
+            setTimeout(() => {
+                phoneInput.focus();
+            }, 300);
         };
 
         window.logout = async () => {
@@ -1075,6 +1085,12 @@
 
             message.innerText = "OTP sent";
             message.className = "success";
+
+            // ✅ Auto-focus OTP
+            setTimeout(() => {
+                const otpInput = document.getElementById("otp");
+                otpInput.focus();
+            }, 200);
         };
 
         window.verifyOTP = async () => {
