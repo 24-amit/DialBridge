@@ -889,33 +889,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-        window.logout = async () => {
-            if (!myNumber) return;
-
-            try {
-                const q = query(
-                    collection(db, "user_sessions"),
-                    where("number", "==", myNumber),
-                    where("logoutTime", "==", null)
-                );
-
-                const snap = await getDocs(q);
-
-                snap.forEach(async (snapDoc) => {
-                    await updateDoc(doc(db, "user_sessions", snapDoc.id), {
-                        logoutTime: Date.now()
-                    });
-                });
-
-            } catch (err) {
-                console.error(err);
-            }
-
-            Store.removeItem("userNumber");
-            location.reload();
-        };
+        import { getFirestore, collection, addDoc, query, where, doc, getDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getDatabase, ref, set, onDisconnect, get, update }
+            from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAoA3skXYt00nNcV1efQx6aHtZtAhZ5ZqI",
@@ -927,6 +903,7 @@
         const app = initializeApp(firebaseConfig);
         // const auth = getAuth(app);
         const db = getFirestore(app);
+        const rtdb = getDatabase(app);
         const Store = {
             setItem: (k, v) => localStorage.setItem(k, v),
             getItem: (k) => localStorage.getItem(k),
@@ -941,9 +918,20 @@
                 startApp(); // auto login
             }
         };
-        // Store.setItem = (k, v) => Store.data[k] = v;
-        // Store.getItem = (k) => Store.data[k] || null;
-        // auth.settings.appVerificationDisabledForTesting = true;
+
+        window.logout = async () => {
+            if (!myNumber) return;
+
+            const userStatusRef = ref(rtdb, "status/" + myNumber);
+
+            await set(userStatusRef, {
+                online: false,
+                lastSeen: Date.now()
+            });
+
+            Store.removeItem("userNumber");
+            location.reload();
+        };
 
         let socket, myNumber, currentCallUser, number = "";
         let callStartTime, callSeconds, callTimerInterval, caller;
@@ -1026,12 +1014,6 @@
 
                     Store.setItem("userNumber", myNumber);
 
-                    // ✅ REGISTER USER IN FIRESTORE
-                    setDoc(doc(db, "users", myNumber), {
-                        online: true,
-                        lastSeen: Date.now()
-                    }, { merge: true });
-
                     message.innerText = "Login Successful";
                     message.className = "success";
 
@@ -1050,8 +1032,30 @@
         };
 
         /* ---- APP START ---- */
-        function startApp() {
+        async function startApp() {
             myNumber = myNumber || Store.getItem("userNumber");
+
+            const userStatusRef = ref(rtdb, "status/" + myNumber);
+
+            // ONLINE
+            await set(userStatusRef, {
+                online: true,
+                lastSeen: Date.now()
+            });
+
+            // AUTO OFFLINE
+            onDisconnect(userStatusRef).set({
+                online: false,
+                lastSeen: Date.now()
+            });
+
+            // HEARTBEAT
+            setInterval(() => {
+                update(userStatusRef, {
+                    lastSeen: Date.now()
+                });
+            }, 10000);
+
             document.getElementById("userLabel").innerText = "You: " + myNumber;
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
@@ -1060,10 +1064,7 @@
 
             socket = io("https://dialbridge.onrender.com", {
                 query: { userId: myNumber },
-                transports: ["websocket"],
-                reconnection: true,
-                reconnectionAttempts: 10,
-                reconnectionDelay: 1000
+                transports: ["websocket"]
             });
 
             socket.on("connect", () => {
@@ -1080,45 +1081,54 @@
                 where("participants", "array-contains", userNumber)
             );
 
-            const snap = await getDocs(q);
-            const historyHTML = [];
+            onSnapshot(q, (snap) => {
+                const historyHTML = [];
 
-            snap.forEach(doc => {
-                const data = doc.data();
+                snap.forEach(doc => {
+                    const data = doc.data();
 
-                const isOutgoing = data.caller === userNumber;
+                    const isOutgoing = data.caller === userNumber;
 
-                historyHTML.push({
-                    num: isOutgoing ? data.receiver : data.caller,
-                    dur: data.duration,
-                    type: isOutgoing ? "out" : "in",
-                    ts: data.timestamp
+                    historyHTML.push({
+                        num: isOutgoing ? data.receiver : data.caller,
+                        dur: data.duration,
+                        type: isOutgoing ? "out" : "in",
+                        ts: data.timestamp?.toDate()
+                    });
                 });
-            });
 
-            historyHTML.sort((a, b) => b.ts - a.ts);
+                historyHTML.sort((a, b) => b.ts - a.ts);
 
-            const list = document.getElementById("historyList");
+                const list = document.getElementById("historyList");
 
-            if (!historyHTML.length) {
-                list.innerHTML = `
+                if (!historyHTML.length) {
+                    list.innerHTML = `
 <div class="history-empty">
     <p>No recent calls</p>
 </div>`;
-                return;
-            }
+                    return;
+                }
 
-            list.innerHTML = historyHTML.map(item => `
-        <div class="history-item" onclick="dialFromHistory('${item.num}')">
-            <div class="history-icon ${item.type}">
-                ${item.type === "out" ? "↗" : "↙"}
-            </div>
-            <div class="history-info">
-                <div class="history-num">${item.num}</div>
-                <div class="history-dur">${item.dur}s</div>
+                list.innerHTML = historyHTML.map(item => {
+                    const formatted = item.ts
+                        ? new Date(item.ts).toLocaleString()
+                        : "Just now";
+
+                    return `
+    <div class="history-item" onclick="dialFromHistory('${item.num}')">
+        <div class="history-icon ${item.type}">
+            ${item.type === "out" ? "↗" : "↙"}
+        </div>
+        <div class="history-info">
+            <div class="history-num">${item.num}</div>
+            <div class="history-dur">
+                ${item.dur}s • ${formatted}
             </div>
         </div>
-    `).join("");
+    </div>
+    `;
+                }).join("");
+            });
         }
 
         window.dialFromHistory = (num) => {
@@ -1149,9 +1159,13 @@
 
             socket.on("call-accepted", async () => {
                 CALL_STATE = "IN_CALL";
-
-                startTimer();
+                showCallScreen("Connecting...");
                 await startWebRTC(true);
+            });
+
+            socket.on("call-rejected", () => {
+                document.getElementById('status').innerText = "Call Rejected";
+                setTimeout(resetUI, 1500);
             });
 
             socket.on("offer", async (offer) => {
@@ -1207,13 +1221,19 @@
         /* ---- TIMER ---- */
         function startTimer() {
             callSeconds = 0;
+
             callTimerInterval = setInterval(() => {
                 callSeconds++;
-                const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
-                const secs = String(callSeconds % 60).padStart(2, '0');
 
-                document.getElementById('status').innerText = `${mins}:${secs}`;
+                document.getElementById('status').innerText =
+                    formatTime(callSeconds);
             }, 1000);
+        }
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${m}:${s < 10 ? "0" : ""}${s}`;
         }
 
         function stopTimer() {
@@ -1255,17 +1275,15 @@
             const target = "+91" + number;
 
             try {
-                const userRef = doc(db, "users", target);
-                const userSnap = await getDoc(userRef);
+                const statusSnap = await get(ref(rtdb, "status/" + target));
+                const status = statusSnap.val();
 
-                if (!userSnap.exists()) {
+                if (!statusSnap.exists()) {
                     alert("User not registered");
                     return;
                 }
 
-                const data = userSnap.data();
-
-                if (!data.online) {
+                if (!status?.online) {
                     alert("User is offline");
                     return;
                 }
@@ -1279,6 +1297,8 @@
                     to: currentCallUser,
                     from: myNumber
                 });
+
+                showCallScreen("Calling...");
 
             } catch (err) {
                 console.error(err);
@@ -1309,8 +1329,7 @@
             });
 
             document.getElementById('incoming').style.display = 'none';
-
-            CALL_STATE = "IDLE"; // ✅ ADD THIS
+            CALL_STATE = "IDLE";
         };
 
         window.endCall = async () => {
@@ -1320,7 +1339,7 @@
 
             await saveCallLog(myNumber, currentCallUser, duration);
 
-            await loadCallHistory(myNumber);
+            loadCallHistory(myNumber);
 
             cleanupCall();
             stopTimer();
@@ -1331,6 +1350,8 @@
 
         /* ---- WEBRTC ---- */
         async function startWebRTC(isCaller) {
+            if (peer) cleanupCall();
+            
             try {
                 peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
@@ -1362,10 +1383,15 @@
 
                 peer.onconnectionstatechange = () => {
                     if (peer.connectionState === "connected") {
+                        callStartTime = Date.now();
                         startTimer();
                     }
 
-                    if (peer.connectionState === "disconnected" || peer.connectionState === "failed") {
+                    if (
+                        CALL_STATE === "IN_CALL" &&
+                        (peer.connectionState === "disconnected" ||
+                            peer.connectionState === "failed")
+                    ) {
                         endCall();
                     }
                 };
@@ -1449,24 +1475,14 @@
         }
 
         async function saveCallLog(caller, receiver, duration) {
-            try {
-                await addDoc(collection(db, "call_logs"), {
-                    caller,
-                    receiver,
-                    participants: [caller, receiver], // 🔥 NEW
-                    duration,
-                    timestamp: Date.now()
-                });
-            } catch (err) {
-                console.error("Error saving call:", err);
-            }
+            await addDoc(collection(db, "call_logs"), {
+                caller,
+                receiver,
+                participants: [caller, receiver],
+                duration,
+                timestamp: serverTimestamp()
+            });
         }
-
-        window.addEventListener("unload", () => {
-            if (socket && myNumber) {
-                socket.emit("user-disconnect", myNumber);
-            }
-        });
     </script>
 
 </body>
