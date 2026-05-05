@@ -248,6 +248,7 @@
 
         /* HISTORY */
         .history {
+            flex: 1;
             min-height: 0;
             overflow-y: auto;
             padding: var(--space-4) var(--space-4) var(--space-3);
@@ -963,16 +964,11 @@
             const history = document.getElementById("historySection");
             const dialpad = document.getElementById("dialpadSection");
 
-            if (!history || !dialpad) {
-                console.error("Tab elements not found");
-                return;
-            }
-
             if (tab === "history") {
                 history.style.display = "block";
                 dialpad.style.display = "none";
             } else {
-                history.style.display = "none";
+                history.style.display = "block";
                 dialpad.style.display = "flex";
             }
         };
