@@ -1447,23 +1447,31 @@
         window.makeCall = async () => {
             console.log("CALL BUTTON CLICKED");
 
+            console.log("Socket:", socket);
+            console.log("Connected:", socket?.connected);
+
+            console.log("Number:", number);
+
             if (!socket || !socket.connected) {
+                console.log("❌ SOCKET NOT CONNECTED");
                 alert("Not connected to server yet");
                 return;
             }
 
             if (!number) return;
-            console.log("Number:", number);
 
             const target = normalize(number);
+            console.log("Target:", target);
             if (!target) {
                 alert("Invalid number");
                 return;
             }
 
             try {
+                console.log("Above of statusSnap Checking user status...");
                 const statusSnap = await get(ref(rtdb, "status/" + target));
                 const status = statusSnap.val();
+                console.log("Checking user status...");
 
                 if (!statusSnap.exists()) {
                     alert("User not registered");
