@@ -1368,6 +1368,16 @@
                 socket.disconnect();
                 location.reload();
             });
+
+            socket.on("disconnect", async () => {
+                await userRef.update({
+                    online: false,
+                    socketId: null,
+                    lastSeen: Date.now(),
+                });
+
+                console.log("Disconnected:", userId);
+            });
         }
 
         /* ---- TIMER ---- */

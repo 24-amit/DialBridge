@@ -4,6 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const admin = require("firebase-admin");
+const users = new Map();
 
 admin.initializeApp({
   credential: admin.credential.cert(require("./firebase-service-account.json")),
@@ -42,6 +43,8 @@ io.on("connection", async (socket) => {
   socket.userId = userId;
   socket.sessionId = sessionId;
 
+  users.set(userId, socket.id);
+
   const userRef = db.ref("status/" + userId);
 
   // THEN fetch updated state
@@ -69,20 +72,11 @@ io.on("connection", async (socket) => {
     return d?.sessionId === socket.sessionId;
   }
 
-  async function getSocketId(userId) {
-    const snap = await db.ref(`status/${userId}`).once("value");
-    const data = snap.val();
-
-    if (!data?.online) return null;
-
-    return data.socketId || null;
-  }
-
   /* ---------- CALL EVENTS ---------- */
   socket.on("call-user", async ({ to, from }) => {
     if (!(await valid())) return socket.emit("force-logout");
 
-    const socketId = await getSocketId(to);
+    const socketId = users.get(to);
 
     // ❌ user not online
     if (!socketId) return socket.emit("user-offline");
@@ -98,7 +92,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const socketId = await getSocketId(to);
+    const socketId = users.get(to);
 
     if (socketId) {
       io.to(socketId).emit("call-accepted");
@@ -112,7 +106,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const socketId = await getSocketId(to);
+    const socketId = users.get(to);
 
     if (socketId) {
       io.to(socketId).emit("offer", offer);
@@ -126,7 +120,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const socketId = await getSocketId(to);
+    const socketId = users.get(to);
 
     if (socketId) {
       io.to(socketId).emit("answer", answer);
@@ -149,7 +143,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const socketId = await getSocketId(to);
+    const socketId = users.get(to);
 
     if (socketId) {
       io.to(socketId).emit("ice-candidate", candidate);
@@ -163,7 +157,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const socketId = await getSocketId(to);
+    const socketId = users.get(to);
 
     if (socketId) {
       io.to(socketId).emit("call-ended");
@@ -171,6 +165,8 @@ io.on("connection", async (socket) => {
   });
 
   socket.on("disconnect", async () => {
+    users.delete(socket.userId);
+
     const snap = await userRef.once("value");
     const data = snap.val();
 
@@ -186,7 +182,7 @@ io.on("connection", async (socket) => {
       });
     }
 
-    console.log("Disconnected:", userId);
+    console.log("Disconnected:", socket.userId);
   });
 });
 
