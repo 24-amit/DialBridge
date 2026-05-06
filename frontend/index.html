@@ -944,7 +944,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, addDoc, query, where, doc, getDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getDatabase, ref, set, onDisconnect, get, update }
+        import { getDatabase, ref, set, onDisconnect, get, update, onValue }
             from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         const firebaseConfig = {
@@ -1026,7 +1026,7 @@
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
         let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
-        let sessionId = crypto.randomUUID();
+        window.sessionId = crypto.randomUUID();
 
         const deleteBtn = document.getElementById("deleteBtn");
         let holdTimer = null;
@@ -1136,31 +1136,66 @@
         async function startApp() {
             myNumber = myNumber || Store.getItem("userNumber");
 
-            const userStatusRef = ref(rtdb, "status/" + myNumber);
+            const userRef = ref(rtdb, "status/" + myNumber);
 
-            // CHECK EXISTING SESSION
-            const snap = await get(userStatusRef);
-            const data = snap.val();
+            const snap = await get(userRef);
+            const existing = snap.val();
 
-            // SET CURRENT SESSION
-            await set(ref(rtdb, "status/" + myNumber), {
+            // FORCE OLD DEVICE OUT LOGIC
+            if (existing?.sessionId && existing.sessionId !== window.sessionId) {
+                // another device already active
+            }
+
+            // overwrite session (THIS IS THE KEY PART)
+            await set(userRef, {
                 online: true,
                 lastSeen: Date.now(),
-                sessionId
+                sessionId: window.sessionId
+            });
+
+            onValue(userRef, (snap) => {
+                if (window.__forceLogoutTriggered) return;
+
+                const data = snap.val();
+                if (!data) return;
+
+                // ignore initial sync glitch
+                if (!window.sessionId) return;
+
+                // 🔥 only react when session mismatches
+                if (data.sessionId && data.sessionId !== window.sessionId) {
+
+                    // prevent multiple triggers
+                    window.__forceLogoutTriggered = true;
+
+                    alert("Logged in on another device");
+
+                    try {
+                        socket.emit("force-logout");
+                        socket.disconnect();
+                    } catch (e) { }
+
+                    Store.removeItem("userNumber");
+
+                    setTimeout(() => {
+                        location.reload();
+                    }, 200);
+                }
             });
 
             switchTab("dialpad");
 
             // AUTO OFFLINE
-            onDisconnect(userStatusRef).set({
+            onDisconnect(userRef).set({
                 online: false,
                 lastSeen: Date.now()
             });
 
             // HEARTBEAT
-            setInterval(() => {
-                update(ref(rtdb, "status/" + myNumber), {
-                    lastSeen: Date.now()
+            setInterval(async () => {
+                await update(userRef, {
+                    lastSeen: Date.now(),
+                    online: true
                 });
             }, 10000);
 
@@ -1171,7 +1206,7 @@
             loadCallHistory(myNumber);
 
             socket = io("https://dialbridge.onrender.com", {
-                query: { userId: myNumber, sessionId: sessionId },
+                query: { userId: myNumber, sessionId: window.sessionId },
                 transports: ["websocket"]
             });
 
@@ -1327,12 +1362,11 @@
                 }
             });
 
-            socket.on("session-update", ({ userId, sessionId }) => {
-                if (userId === myNumber && sessionId !== window.sessionId) {
-                    socket.emit("force-logout");
-                    localStorage.removeItem("userNumber");
-                    location.reload();
-                }
+            socket.on("force-logout", () => {
+                Store.removeItem("userNumber");
+                alert("Logged in on another device");
+                socket.disconnect();
+                location.reload();
             });
         }
 
