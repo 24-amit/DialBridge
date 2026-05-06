@@ -32,6 +32,8 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", async (socket) => {
+  console.log("🔌 SOCKET CONNECTED:", socket.id, socket.handshake.query);
+  
   const { userId, sessionId } = socket.handshake.query;
 
   if (!userId || !sessionId) {

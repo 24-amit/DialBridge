@@ -1207,7 +1207,11 @@
 
             socket = io("https://dialbridge.onrender.com", {
                 query: { userId: myNumber, sessionId: window.sessionId },
-                transports: ["websocket"]
+                transports: ["polling", "websocket"]
+            });
+
+            socket.on("connect", () => {
+                console.log("🟢 SOCKET CONNECTED FRONTEND:", socket.id);
             });
 
             setupSocketEvents();
@@ -1371,6 +1375,8 @@
             });
 
             socket.on("disconnect", async () => {
+                console.log("🔴 SOCKET DISCONNECTED");
+
                 await userRef.update({
                     online: false,
                     socketId: null,
@@ -1451,6 +1457,11 @@
 
         /* ---- CALL FLOW ---- */
         window.makeCall = async () => {
+            if (!socket || !socket.connected) {
+                alert("Not connected to server yet");
+                return;
+            }
+
             if (!number) return;
 
             const target = "+91" + number;
