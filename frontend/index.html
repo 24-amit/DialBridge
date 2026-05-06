@@ -1116,7 +1116,7 @@
 
             try {
                 if (otp === "123456") {
-                    myNumber = Store.getItem("tempPhone");
+                    myNumber = normalize(Store.getItem("tempPhone"));
                     if (!myNumber) {
                         throw new Error("Phone number missing");
                     }
@@ -1143,6 +1143,7 @@
         /* ---- APP START ---- */
         async function startApp() {
             myNumber = myNumber || Store.getItem("userNumber");
+            myNumber = normalize(myNumber);
 
             const userRef = ref(rtdb, "status/" + normalize(myNumber));
 
@@ -1202,8 +1203,14 @@
             loadCallHistory(myNumber);
 
             socket = io("https://dialbridge.onrender.com", {
-                query: { userId: myNumber, sessionId: window.sessionId },
+                query: { userId: normalize(myNumber), sessionId: window.sessionId },
                 transports: ["polling", "websocket"]
+            });
+
+            console.log("MY NUMBER:", myNumber);
+
+            socket.on("connect", () => {
+                console.log("✅ SOCKET CONNECTED:", socket.id);
             });
 
             setupSocketEvents();
@@ -1487,6 +1494,8 @@
                 currentCallUser = target;
 
                 CALL_STATE = "CALLING";
+
+                console.log("Socket connected before call:", socket.connected);
 
                 socket.emit("call-user", {
                     to: normalize(currentCallUser),

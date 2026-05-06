@@ -32,7 +32,7 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", async (socket) => {
-  console.log("Receiver connected:", socket.id);
+  console.log("🟢 NEW CONNECTION:", socket.id);
 
   function normalize(num) {
     const digits = (num || "").toString().replace(/\D/g, "");
@@ -40,7 +40,9 @@ io.on("connection", async (socket) => {
   }
 
   let { userId, sessionId } = socket.handshake.query;
-  userId = normalize(userId);
+  if (!userId.startsWith("+91")) {
+    userId = normalize(userId);
+  }
 
   if (!userId || !sessionId) {
     socket.disconnect(true);
@@ -83,14 +85,21 @@ io.on("connection", async (socket) => {
 
     to = normalize(to);
 
+    console.log("📞 CALL REQUEST");
+    console.log("FROM:", from);
+    console.log("TO:", to);
+    console.log("🧠 ACTIVE ROOMS:");
+    console.log("Available rooms:", [...io.sockets.adapter.rooms.keys()]);
+
     if (!(await valid())) return socket.emit("force-logout");
 
     const snap = await db.ref("status/" + to).once("value");
     const data = snap.val();
     if (!data?.online) {
+      console.log("❌ USER OFFLINE");
       return socket.emit("user-offline");
     }
-    console.log("Calling:", to);
+    console.log("✅ EMITTING incoming-call TO:", to);
     io.to(to).emit("incoming-call", { from });
   });
 
