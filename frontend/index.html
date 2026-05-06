@@ -964,8 +964,24 @@
 
         function normalize(num) {
             const digits = (num || "").toString().replace(/\D/g, "");
-            const last10 = digits.slice(-10);
-            return "+91" + last10;
+
+            if (digits.length === 12 && digits.startsWith("91")) {
+                return "+" + digits;
+            }
+            if (digits.length === 13 && digits.startsWith("+91")) {
+                return digits;
+            }
+
+            if (digits.length === 10) {
+                return "+91" + digits;
+            }
+
+            return null;
+        }
+
+        function formatNumber(num) {
+            const n = normalize(num);
+            return n ? n.replace("+91", "+91 ") : "";
         }
 
         window.onload = () => {
@@ -1179,8 +1195,7 @@
                 });
             }, 10000);
 
-            document.getElementById("userLabel").innerText =
-                "You: " + normalize(myNumber).replace("+91", "+91 ");
+            document.getElementById("userLabel").innerText = "You: " + formatNumber(myNumber);
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
 
@@ -1240,7 +1255,7 @@
             ${item.type === "out" ? "↗" : "↙"}
         </div>
         <div class="history-info">
-            <div class="history-num">${normalize(item.num)}</div>
+            <div class="history-num">${formatNumber(item.num)}</div>
             <div class="history-dur">
                 ${item.dur}s • ${formatted}
             </div>
@@ -1263,6 +1278,8 @@
         /* ---- SOCKET EVENTS ---- */
         function setupSocketEvents() {
             socket.on("incoming-call", (data) => {
+                console.log("INCOMING CALL EVENT", data);
+
                 if (CALL_STATE !== "IDLE") {
                     socket.emit("call-rejected", {
                         to: data.from,
@@ -1275,7 +1292,7 @@
                 caller = data.from;
                 currentCallUser = data.from;
 
-                document.getElementById('incomingNum').innerText = normalize(data.from);
+                document.getElementById('incomingNum').innerText = formatNumber(currentCallUser);
                 document.getElementById('incoming').style.display = 'block';
             });
 
@@ -1387,7 +1404,7 @@
             const cursor = document.getElementById('cursor');
             const bar = document.getElementById('number');
             if (number) {
-                text.innerText = "+91 " + number;
+                text.innerText = formatNumber(number);
                 cursor.style.display = 'inline-block';
                 bar.classList.add('has-number');
             } else {
@@ -1436,6 +1453,10 @@
             if (!number) return;
 
             const target = normalize(number);
+            if (!target) {
+                alert("Invalid number");
+                return;
+            }
 
             try {
                 const statusSnap = await get(ref(rtdb, "status/" + target));
@@ -1627,7 +1648,7 @@
         function showCallScreen(status) {
             UI.showCallScreen();
             document.getElementById('status').innerText = status;
-            document.getElementById('callUser').innerText = normalize(currentCallUser);
+            document.getElementById('callUser').innerText = formatNumber(currentCallUser);
 
             const letter = (currentCallUser || "?")[0].toUpperCase();
             document.getElementById('callAvatar').innerText =

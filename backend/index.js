@@ -32,6 +32,8 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", async (socket) => {
+  console.log("Receiver connected:", socket.id);
+
   function normalize(num) {
     const digits = (num || "").toString().replace(/\D/g, "");
     return "+91" + digits.slice(-10);
@@ -49,6 +51,7 @@ io.on("connection", async (socket) => {
   socket.sessionId = sessionId;
 
   socket.join(userId);
+  console.log("User joined room:", userId);
 
   const userRef = db.ref("status/" + userId);
 
@@ -77,7 +80,8 @@ io.on("connection", async (socket) => {
   /* ---------- CALL EVENTS ---------- */
   socket.on("call-user", async ({ to }) => {
     const from = socket.userId;
-    if (from === to) return;
+
+    to = normalize(to);
 
     if (!(await valid())) return socket.emit("force-logout");
 
@@ -86,6 +90,7 @@ io.on("connection", async (socket) => {
     if (!data?.online) {
       return socket.emit("user-offline");
     }
+    console.log("Calling:", to);
     io.to(to).emit("incoming-call", { from });
   });
 
