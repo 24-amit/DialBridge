@@ -1483,8 +1483,8 @@
 
                 CALL_STATE = "CALLING";
 
-                console.log("Socket connected before call:", socket.connected);
-
+                console.log("🚀 EMITTING CALL USER NOW");
+                
                 socket.emit("call-user", {
                     to: normalize(currentCallUser),
                     from: normalize(myNumber)

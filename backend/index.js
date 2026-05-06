@@ -1,5 +1,8 @@
 const express = require("express");
 const cors = require("cors");
+
+console.log("🔥 SERVER VERSION: CALL-DEBUG-123");
+
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
