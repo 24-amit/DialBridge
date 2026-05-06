@@ -1270,10 +1270,11 @@
                     });
                     return;
                 }
-
                 CALL_STATE = "RINGING";
 
                 caller = data.from;
+                currentCallUser = data.from;
+
                 document.getElementById('incomingNum').innerText = normalize(data.from);
                 document.getElementById('incoming').style.display = 'block';
             });
@@ -1485,8 +1486,10 @@
         };
 
         window.rejectCall = () => {
+            if (!caller) return;
+
             socket.emit("call-rejected", {
-                to: normalize(currentCallUser),
+                to: normalize(caller),
                 from: normalize(myNumber)
             });
 
