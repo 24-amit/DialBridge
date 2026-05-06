@@ -1284,6 +1284,7 @@
         /* ---- SOCKET EVENTS ---- */
         function setupSocketEvents() {
             socket.on("incoming-call", (data) => {
+                console.log("INCOMING CALL RECEIVED:", data);
 
                 // 🚫 reject if busy
                 if (CALL_STATE !== "IDLE") {

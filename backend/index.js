@@ -43,6 +43,7 @@ io.on("connection", async (socket) => {
   socket.sessionId = sessionId;
 
   socket.join(userId);
+  console.log("JOIN ROOM:", userId);
 
   const userRef = db.ref("status/" + userId);
 
@@ -73,6 +74,8 @@ io.on("connection", async (socket) => {
 
   /* ---------- CALL EVENTS ---------- */
   socket.on("call-user", async ({ to, from }) => {
+    console.log("CALL REQUEST:", from, "->", to);
+
     if (!(await valid())) return socket.emit("force-logout");
 
     const snap = await db.ref("status/" + to).once("value");
@@ -84,6 +87,8 @@ io.on("connection", async (socket) => {
 
     // ✅ send call
     io.to(to).emit("incoming-call", { from });
+
+    console.log("EMIT DONE TO ROOM:", to);
   });
 
   socket.on("call-accepted", async ({ to }) => {
