@@ -1404,7 +1404,7 @@
             const cursor = document.getElementById('cursor');
             const bar = document.getElementById('number');
             if (number) {
-                text.innerText = formatNumber(number);
+                text.innerText = "+91 " + number;
                 cursor.style.display = 'inline-block';
                 bar.classList.add('has-number');
             } else {
@@ -1445,12 +1445,15 @@
 
         /* ---- CALL FLOW ---- */
         window.makeCall = async () => {
+            console.log("CALL BUTTON CLICKED");
+
             if (!socket || !socket.connected) {
                 alert("Not connected to server yet");
                 return;
             }
 
             if (!number) return;
+            console.log("Number:", number);
 
             const target = normalize(number);
             if (!target) {
