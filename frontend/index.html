@@ -1212,6 +1212,11 @@
 
             socket.on("connect", () => {
                 console.log("🟢 SOCKET CONNECTED FRONTEND:", socket.id);
+                socket.emit("debug", myNumber);
+            });
+
+            socket.on("debug", (data) => {
+                console.log("🧪 DEBUG FROM CLIENT:", data);
             });
 
             setupSocketEvents();

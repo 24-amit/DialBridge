@@ -32,11 +32,12 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", async (socket) => {
-  console.log("🔌 SOCKET CONNECTED:", socket.id, socket.handshake.query);
-  
   const { userId, sessionId } = socket.handshake.query;
 
+  console.log("🔌 RAW CONNECT:", socket.id, socket.handshake.query);
+
   if (!userId || !sessionId) {
+    console.log("❌ INVALID HANDSHAKE");
     socket.disconnect(true);
     return;
   }
@@ -45,7 +46,7 @@ io.on("connection", async (socket) => {
   socket.sessionId = sessionId;
 
   socket.join(userId);
-  console.log("JOIN ROOM:", userId);
+  console.log("🟢 SOCKET JOINED ROOM:", userId);
 
   const userRef = db.ref("status/" + userId);
 
@@ -88,9 +89,11 @@ io.on("connection", async (socket) => {
     }
 
     // ✅ send call
-    io.to(to).emit("incoming-call", { from });
+    const target = to.replace(/\D/g, "");
+    console.log("🎯 TARGET ROOM:", target);
 
-    console.log("EMIT DONE TO ROOM:", to);
+    io.to(target).emit("incoming-call", { from });
+    console.log("📤 EVENT SENT");
   });
 
   socket.on("call-accepted", async ({ to }) => {
@@ -100,7 +103,9 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    io.to(to).emit("call-accepted");
+    const target = to.replace(/\D/g, "");
+    io.to(target).emit("call-accepted");
+    // io.to(to).emit("call-accepted");
   });
 
   socket.on("offer", async ({ to, offer }) => {
@@ -110,7 +115,9 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    io.to(to).emit("offer", offer);
+    const target = to.replace(/\D/g, "");
+    io.to(target).emit("offer", offer);
+    // io.to(to).emit("offer", offer);
   });
 
   socket.on("answer", async ({ to, answer }) => {
@@ -120,13 +127,17 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    io.to(to).emit("answer", answer);
+    const target = to.replace(/\D/g, "");
+    io.to(target).emit("answer", answer);
+    // io.to(to).emit("answer", answer);
   });
 
   socket.on("call-rejected", async ({ to }) => {
     if (!(await valid())) return;
 
-    io.to(to).emit("call-rejected");
+    const target = to.replace(/\D/g, "");
+    io.to(target).emit("call-rejected");
+    // io.to(to).emit("call-rejected");
   });
 
   socket.on("ice-candidate", async ({ to, candidate }) => {
@@ -136,7 +147,9 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    io.to(to).emit("ice-candidate", candidate);
+    const target = to.replace(/\D/g, "");
+    io.to(target).emit("ice-candidate", candidate);
+    // io.to(to).emit("ice-candidate", candidate);
   });
 
   socket.on("end-call", async ({ to, from }) => {
@@ -146,7 +159,9 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    io.to(to).emit("call-ended");
+    const target = to.replace(/\D/g, "");
+    io.to(target).emit("call-ended");
+    // io.to(to).emit("call-ended");
   });
 
   socket.on("disconnect", async () => {
