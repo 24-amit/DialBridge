@@ -32,6 +32,15 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", async (socket) => {
+  function normalizeNumber(num) {
+    if (!num) return "";
+    num = num.toString().replace(/\D/g, "");
+    if (!num.startsWith("91")) num = "91" + num;
+    return "+" + num;
+  }
+
+  console.log("SOCKETS IN ROOM:", io.sockets.adapter.rooms);
+
   const { userId, sessionId } = socket.handshake.query;
 
   console.log("🔌 RAW CONNECT:", socket.id, socket.handshake.query);
@@ -45,8 +54,10 @@ io.on("connection", async (socket) => {
   socket.userId = userId;
   socket.sessionId = sessionId;
 
-  socket.join(userId);
-  console.log("🟢 SOCKET JOINED ROOM:", userId);
+  socket.join(normalizeNumber(userId));
+  console.log("🟢 SOCKET JOINED ROOM:", normalizeNumber(userId));
+  console.log("socket:", socket.id);
+  console.log("ROOMS:", [...socket.rooms]);
 
   const userRef = db.ref("status/" + userId);
 
@@ -77,6 +88,8 @@ io.on("connection", async (socket) => {
 
   /* ---------- CALL EVENTS ---------- */
   socket.on("call-user", async ({ to, from }) => {
+    console.log("ROOM LIST BEFORE EMIT:", io.sockets.adapter.rooms);
+
     console.log("CALL REQUEST:", from, "->", to);
 
     if (!(await valid())) return socket.emit("force-logout");
@@ -89,11 +102,9 @@ io.on("connection", async (socket) => {
     }
 
     // ✅ send call
-    const target = to.replace(/\D/g, "");
-    console.log("🎯 TARGET ROOM:", target);
+    io.to(normalizeNumber(to)).emit("incoming-call", { from });
 
-    io.to(target).emit("incoming-call", { from });
-    console.log("📤 EVENT SENT");
+    console.log("EMIT DONE TO ROOM:", to);
   });
 
   socket.on("call-accepted", async ({ to }) => {
@@ -103,9 +114,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const target = to.replace(/\D/g, "");
-    io.to(target).emit("call-accepted");
-    // io.to(to).emit("call-accepted");
+    io.to(normalizeNumber(to)).emit("call-accepted");
   });
 
   socket.on("offer", async ({ to, offer }) => {
@@ -115,9 +124,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const target = to.replace(/\D/g, "");
-    io.to(target).emit("offer", offer);
-    // io.to(to).emit("offer", offer);
+    io.to(normalizeNumber(to)).emit("offer", offer);
   });
 
   socket.on("answer", async ({ to, answer }) => {
@@ -127,17 +134,13 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const target = to.replace(/\D/g, "");
-    io.to(target).emit("answer", answer);
-    // io.to(to).emit("answer", answer);
+    io.to(normalizeNumber(to)).emit("answer", answer);
   });
 
   socket.on("call-rejected", async ({ to }) => {
     if (!(await valid())) return;
 
-    const target = to.replace(/\D/g, "");
-    io.to(target).emit("call-rejected");
-    // io.to(to).emit("call-rejected");
+    io.to(normalizeNumber(to)).emit("call-rejected");
   });
 
   socket.on("ice-candidate", async ({ to, candidate }) => {
@@ -147,9 +150,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const target = to.replace(/\D/g, "");
-    io.to(target).emit("ice-candidate", candidate);
-    // io.to(to).emit("ice-candidate", candidate);
+    io.to(normalizeNumber(to)).emit("ice-candidate", candidate);
   });
 
   socket.on("end-call", async ({ to, from }) => {
@@ -159,9 +160,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const target = to.replace(/\D/g, "");
-    io.to(target).emit("call-ended");
-    // io.to(to).emit("call-ended");
+    io.to(normalizeNumber(to)).emit("call-ended");
   });
 
   socket.on("disconnect", async () => {

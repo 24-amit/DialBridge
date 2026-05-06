@@ -958,6 +958,13 @@
             return num ? num.replace(/^\+91\s?/, "") : "";
         };
 
+        function normalizeNumber(num) {
+            if (!num) return "";
+            num = num.toString().replace(/\D/g, "");
+            if (!num.startsWith("91")) num = "91" + num;
+            return "+" + num;
+        }
+
         const app = initializeApp(firebaseConfig);
         // const auth = getAuth(app);
         const db = getFirestore(app);
@@ -1069,10 +1076,6 @@
             }
         ];
 
-        // window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        // size: 'invisible'
-        // });
-
         /* ---- LOGIN ---- */
         window.sendOTP = () => {
             let phone = document.getElementById('phone').value.trim().replace(/\D/g, "");
@@ -1136,7 +1139,7 @@
         async function startApp() {
             myNumber = myNumber || Store.getItem("userNumber");
 
-            const userRef = ref(rtdb, "status/" + myNumber);
+            const userRef = ref(rtdb, "status/" + normalizeNumber(myNumber));
 
             const snap = await get(userRef);
             const existing = snap.val();
@@ -1211,12 +1214,14 @@
             });
 
             socket.on("connect", () => {
-                console.log("🟢 SOCKET CONNECTED FRONTEND:", socket.id);
-                socket.emit("debug", myNumber);
+                console.log("Connected:", socket.id);
+                console.log("User room:", myNumber);
+                console.log(io.sockets.adapter.rooms);
             });
 
             socket.on("debug", (data) => {
                 console.log("🧪 DEBUG FROM CLIENT:", data);
+                console.log("ROOM DUMP:", io.sockets.adapter.rooms);
             });
 
             setupSocketEvents();
@@ -1487,12 +1492,13 @@
 
                 callStartTime = Date.now();
                 currentCallUser = target;
+                console.log("CALLING TO:", currentCallUser);
 
                 CALL_STATE = "CALLING";
 
                 socket.emit("call-user", {
-                    to: currentCallUser,
-                    from: myNumber
+                    to: normalizeNumber(currentCallUser),
+                    from: normalizeNumber(myNumber)
                 });
 
                 showCallScreen("Calling...");
@@ -1509,8 +1515,8 @@
             currentCallUser = caller;
 
             socket.emit("call-accepted", {
-                to: currentCallUser,
-                from: myNumber
+                to: normalizeNumber(currentCallUser),
+                from: normalizeNumber(myNumber)
             });
 
             document.getElementById('incoming').style.display = 'none';
@@ -1521,8 +1527,8 @@
 
         window.rejectCall = () => {
             socket.emit("call-rejected", {
-                to: caller,
-                from: myNumber
+                to: normalizeNumber(caller),
+                from: normalizeNumber(myNumber)
             });
 
             document.getElementById('incoming').style.display = 'none';
@@ -1530,7 +1536,7 @@
         };
 
         window.endCall = async () => {
-            socket.emit("end-call", { to: currentCallUser, from: myNumber });
+            socket.emit("end-call", { to: normalizeNumber(currentCallUser), from: normalizeNumber(myNumber) });
 
             const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
 
