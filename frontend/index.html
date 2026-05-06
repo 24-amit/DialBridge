@@ -1084,7 +1084,7 @@
             }
 
             // Store temporarily
-            Store.setItem("tempPhone", toE164(phone));
+            Store.setItem("tempPhone", normalize(phone));
 
             // UI changes
             document.querySelector('.login-box').classList.add('hidden');
@@ -1197,7 +1197,7 @@
                 });
             }, 10000);
 
-            document.getElementById("userLabel").innerText = "You: " + formatDisplay(myNumber);
+            document.getElementById("userLabel").innerText = "You: " + normalize(myNumber);
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
 
@@ -1236,7 +1236,7 @@
                     const isOutgoing = data.caller === userNumber;
 
                     historyHTML.push({
-                        num: toLocal(isOutgoing ? data.receiver : data.caller),
+                        num: normalize(isOutgoing ? data.receiver : data.caller),
                         dur: data.duration,
                         type: isOutgoing ? "out" : "in",
                         ts: data.timestamp?.toDate()
@@ -1257,7 +1257,7 @@
 
                 list.innerHTML = historyHTML.map(item => {
                     const formatted = item.ts
-                        ? new Date(item.ts).toLocaleString()
+                        ? new Date(item.ts).toLocaleTimeString()
                         : "Just now";
 
                     return `
@@ -1266,7 +1266,7 @@
             ${item.type === "out" ? "↗" : "↙"}
         </div>
         <div class="history-info">
-            <div class="history-num">${formatDisplay(item.num)}</div>
+            <div class="history-num">${normalize(item.num)}</div>
             <div class="history-dur">
                 ${item.dur}s • ${formatted}
             </div>
@@ -1296,7 +1296,7 @@
                 // 🚫 reject if busy
                 if (CALL_STATE !== "IDLE") {
                     socket.emit("call-rejected", {
-                        to,
+                        to: data.from,
                         reason: "busy"
                     });
                     return;
@@ -1305,7 +1305,7 @@
                 CALL_STATE = "RINGING";
 
                 caller = data.from;
-                document.getElementById('incomingNum').innerText = formatPhone(data.from);
+                document.getElementById('incomingNum').innerText = normalize(data.from);
                 document.getElementById('incoming').style.display = 'block';
             });
 
@@ -1381,7 +1381,7 @@
             });
 
             socket.on("disconnect", async () => {
-                const userRef = ref(rtdb, "status/" + toE164(myNumber));
+                const userRef = ref(rtdb, "status/" + normalize(myNumber));
 
                 await update(userRef, {
                     online: false,
@@ -1431,7 +1431,7 @@
         }
 
         window.press = (n) => {
-            number += n;
+            if (number.length < 10) number += n;
             updateDisplay();
         };
 
@@ -1468,7 +1468,7 @@
 
             if (!number) return;
 
-            const target = toE164(number);
+            const target = normalize(number);
 
             try {
                 const statusSnap = await get(ref(rtdb, "status/" + target));
@@ -1660,7 +1660,7 @@
         function showCallScreen(status) {
             UI.showCallScreen();
             document.getElementById('status').innerText = status;
-            document.getElementById('callUser').innerText = formatPhone(currentCallUser);
+            document.getElementById('callUser').innerText = normalize(currentCallUser);
 
             const letter = (currentCallUser || "?")[0].toUpperCase();
             document.getElementById('callAvatar').innerText =
@@ -1678,7 +1678,7 @@
             await addDoc(collection(db, "call_logs"), {
                 caller,
                 receiver,
-                participants: [toE164(caller), toE164(receiver)],
+                participants: [normalize(caller), normalize(receiver)],
                 duration,
                 timestamp: serverTimestamp()
             });
