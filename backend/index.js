@@ -55,6 +55,11 @@ io.on("connection", async (socket) => {
   socket.join(userId);
   console.log("User joined room:", userId);
 
+  setTimeout(() => {
+    const room = io.sockets.adapter.rooms.get(userId);
+    console.log("ROOM MEMBERS for", userId, ":", room);
+  }, 1000);
+
   const userRef = db.ref("status/" + userId);
 
   const snap = await userRef.once("value");
@@ -88,6 +93,10 @@ io.on("connection", async (socket) => {
     console.log("📞 CALL REQUEST");
     console.log("FROM:", from);
     console.log("TO:", to);
+
+    console.log("TO LENGTH:", to.length);
+    console.log("ROOM KEY LENGTH:", from.length);
+
     console.log("🧠 ACTIVE ROOMS:");
     console.log("Available rooms:", [...io.sockets.adapter.rooms.keys()]);
 
