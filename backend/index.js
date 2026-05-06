@@ -32,16 +32,16 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", async (socket) => {
-  function normalizeNumber(num) {
-    if (!num) return "";
-    num = num.toString().replace(/\D/g, "");
-    if (!num.startsWith("91")) num = "91" + num;
-    return "+" + num;
+  function normalize(num) {
+    const digits = (num || "").toString().replace(/\D/g, "");
+    return "+91" + digits.slice(-10);
   }
 
   console.log("SOCKETS IN ROOM:", io.sockets.adapter.rooms);
 
-  const { userId, sessionId } = socket.handshake.query;
+  let { userId, sessionId } = socket.handshake.query;
+
+  userId = normalize(userId);
 
   console.log("🔌 RAW CONNECT:", socket.id, socket.handshake.query);
 
@@ -54,8 +54,8 @@ io.on("connection", async (socket) => {
   socket.userId = userId;
   socket.sessionId = sessionId;
 
-  socket.join(normalizeNumber(userId));
-  console.log("🟢 SOCKET JOINED ROOM:", normalizeNumber(userId));
+  socket.join(normalize(userId));
+  console.log("🟢 SOCKET JOINED ROOM:", normalize(userId));
   console.log("socket:", socket.id);
   console.log("ROOMS:", [...socket.rooms]);
 
@@ -87,7 +87,11 @@ io.on("connection", async (socket) => {
   }
 
   /* ---------- CALL EVENTS ---------- */
-  socket.on("call-user", async ({ to, from }) => {
+  socket.on("call-user", async ({ to }) => {
+    const from = socket.userId;
+
+    if (from === to) return;
+
     console.log("ROOM LIST BEFORE EMIT:", io.sockets.adapter.rooms);
 
     console.log("CALL REQUEST:", from, "->", to);
@@ -102,7 +106,9 @@ io.on("connection", async (socket) => {
     }
 
     // ✅ send call
-    io.to(normalizeNumber(to)).emit("incoming-call", { from });
+    io.to(normalize(to)).emit("incoming-call", {
+      from: normalize(from),
+    });
 
     console.log("EMIT DONE TO ROOM:", to);
   });
@@ -114,7 +120,9 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    io.to(normalizeNumber(to)).emit("call-accepted");
+    io.to(normalize(to)).emit("call-accepted", {
+      from: normalize(socket.userId),
+    });
   });
 
   socket.on("offer", async ({ to, offer }) => {
@@ -124,7 +132,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    io.to(normalizeNumber(to)).emit("offer", offer);
+    io.to(normalize(to)).emit("offer", offer);
   });
 
   socket.on("answer", async ({ to, answer }) => {
@@ -134,13 +142,13 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    io.to(normalizeNumber(to)).emit("answer", answer);
+    io.to(normalize(to)).emit("answer", answer);
   });
 
   socket.on("call-rejected", async ({ to }) => {
     if (!(await valid())) return;
 
-    io.to(normalizeNumber(to)).emit("call-rejected");
+    io.to(normalize(to)).emit("call-rejected");
   });
 
   socket.on("ice-candidate", async ({ to, candidate }) => {
@@ -150,17 +158,17 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    io.to(normalizeNumber(to)).emit("ice-candidate", candidate);
+    io.to(normalize(to)).emit("ice-candidate", candidate);
   });
 
-  socket.on("end-call", async ({ to, from }) => {
+  socket.on("end-call", async ({ to }) => {
     if (!(await valid())) {
       socket.emit("force-logout");
       socket.disconnect(true);
       return;
     }
 
-    io.to(normalizeNumber(to)).emit("call-ended");
+    io.to(normalize(to)).emit("call-ended");
   });
 
   socket.on("disconnect", async () => {

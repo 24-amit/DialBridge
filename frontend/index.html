@@ -954,17 +954,6 @@
             appId: "1:112453752302:web:180ceeb4b00997cfa7eaff"
         };
 
-        const formatPhone = (num) => {
-            return num ? num.replace(/^\+91\s?/, "") : "";
-        };
-
-        function normalizeNumber(num) {
-            if (!num) return "";
-            num = num.toString().replace(/\D/g, "");
-            if (!num.startsWith("91")) num = "91" + num;
-            return "+" + num;
-        }
-
         const app = initializeApp(firebaseConfig);
         // const auth = getAuth(app);
         const db = getFirestore(app);
@@ -974,6 +963,12 @@
             getItem: (k) => localStorage.getItem(k),
             removeItem: (k) => localStorage.removeItem(k)
         };
+
+        function normalize(num) {
+            const digits = (num || "").toString().replace(/\D/g, "");
+            const last10 = digits.slice(-10);
+            return "+91" + last10;
+        }
 
         window.onload = () => {
             const savedUser = Store.getItem("userNumber");
@@ -1089,7 +1084,7 @@
             }
 
             // Store temporarily
-            Store.setItem("tempPhone", "+91" + phone);
+            Store.setItem("tempPhone", toE164(phone));
 
             // UI changes
             document.querySelector('.login-box').classList.add('hidden');
@@ -1139,7 +1134,7 @@
         async function startApp() {
             myNumber = myNumber || Store.getItem("userNumber");
 
-            const userRef = ref(rtdb, "status/" + normalizeNumber(myNumber));
+            const userRef = ref(rtdb, "status/" + normalize(myNumber));
 
             const snap = await get(userRef);
             const existing = snap.val();
@@ -1202,7 +1197,7 @@
                 });
             }, 10000);
 
-            document.getElementById("userLabel").innerText = "You: " + formatPhone(myNumber);
+            document.getElementById("userLabel").innerText = "You: " + formatDisplay(myNumber);
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
 
@@ -1216,12 +1211,10 @@
             socket.on("connect", () => {
                 console.log("Connected:", socket.id);
                 console.log("User room:", myNumber);
-                console.log(io.sockets.adapter.rooms);
             });
 
             socket.on("debug", (data) => {
                 console.log("🧪 DEBUG FROM CLIENT:", data);
-                console.log("ROOM DUMP:", io.sockets.adapter.rooms);
             });
 
             setupSocketEvents();
@@ -1243,7 +1236,7 @@
                     const isOutgoing = data.caller === userNumber;
 
                     historyHTML.push({
-                        num: isOutgoing ? data.receiver : data.caller,
+                        num: toLocal(isOutgoing ? data.receiver : data.caller),
                         dur: data.duration,
                         type: isOutgoing ? "out" : "in",
                         ts: data.timestamp?.toDate()
@@ -1273,7 +1266,7 @@
             ${item.type === "out" ? "↗" : "↙"}
         </div>
         <div class="history-info">
-            <div class="history-num">${formatPhone(item.num)}</div>
+            <div class="history-num">${formatDisplay(item.num)}</div>
             <div class="history-dur">
                 ${item.dur}s • ${formatted}
             </div>
@@ -1302,7 +1295,10 @@
 
                 // 🚫 reject if busy
                 if (CALL_STATE !== "IDLE") {
-                    socket.emit("call-rejected", { to: data.from });
+                    socket.emit("call-rejected", {
+                        to,
+                        reason: "busy"
+                    });
                     return;
                 }
 
@@ -1385,15 +1381,13 @@
             });
 
             socket.on("disconnect", async () => {
-                console.log("🔴 SOCKET DISCONNECTED");
+                const userRef = ref(rtdb, "status/" + toE164(myNumber));
 
-                await userRef.update({
+                await update(userRef, {
                     online: false,
                     socketId: null,
                     lastSeen: Date.now(),
                 });
-
-                console.log("Disconnected:", socket.userId);
             });
         }
 
@@ -1474,7 +1468,7 @@
 
             if (!number) return;
 
-            const target = "+91" + number;
+            const target = toE164(number);
 
             try {
                 const statusSnap = await get(ref(rtdb, "status/" + target));
@@ -1497,8 +1491,8 @@
                 CALL_STATE = "CALLING";
 
                 socket.emit("call-user", {
-                    to: normalizeNumber(currentCallUser),
-                    from: normalizeNumber(myNumber)
+                    to: normalize(currentCallUser),
+                    from: normalize(myNumber)
                 });
 
                 showCallScreen("Calling...");
@@ -1515,8 +1509,8 @@
             currentCallUser = caller;
 
             socket.emit("call-accepted", {
-                to: normalizeNumber(currentCallUser),
-                from: normalizeNumber(myNumber)
+                to: normalize(currentCallUser),
+                from: normalize(myNumber)
             });
 
             document.getElementById('incoming').style.display = 'none';
@@ -1527,8 +1521,8 @@
 
         window.rejectCall = () => {
             socket.emit("call-rejected", {
-                to: normalizeNumber(caller),
-                from: normalizeNumber(myNumber)
+                to: normalize(currentCallUser),
+                from: normalize(myNumber)
             });
 
             document.getElementById('incoming').style.display = 'none';
@@ -1536,7 +1530,10 @@
         };
 
         window.endCall = async () => {
-            socket.emit("end-call", { to: normalizeNumber(currentCallUser), from: normalizeNumber(myNumber) });
+            socket.emit("end-call", {
+                to: normalize(currentCallUser),
+                from: normalize(myNumber)
+            });
 
             const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
 
@@ -1681,7 +1678,7 @@
             await addDoc(collection(db, "call_logs"), {
                 caller,
                 receiver,
-                participants: [caller, receiver],
+                participants: [toE164(caller), toE164(receiver)],
                 duration,
                 timestamp: serverTimestamp()
             });
