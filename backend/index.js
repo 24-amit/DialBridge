@@ -37,16 +37,10 @@ io.on("connection", async (socket) => {
     return "+91" + digits.slice(-10);
   }
 
-  console.log("SOCKETS IN ROOM:", io.sockets.adapter.rooms);
-
   let { userId, sessionId } = socket.handshake.query;
-
   userId = normalize(userId);
 
-  console.log("🔌 RAW CONNECT:", socket.id, socket.handshake.query);
-
   if (!userId || !sessionId) {
-    console.log("❌ INVALID HANDSHAKE");
     socket.disconnect(true);
     return;
   }
@@ -54,14 +48,10 @@ io.on("connection", async (socket) => {
   socket.userId = userId;
   socket.sessionId = sessionId;
 
-  socket.join(normalize(userId));
-  console.log("🟢 SOCKET JOINED ROOM:", normalize(userId));
-  console.log("socket:", socket.id);
-  console.log("ROOMS:", [...socket.rooms]);
+  socket.join(userId);
 
   const userRef = db.ref("status/" + userId);
 
-  // THEN fetch updated state
   const snap = await userRef.once("value");
   const data = snap.val();
 
@@ -77,9 +67,7 @@ io.on("connection", async (socket) => {
     lastSeen: Date.now(),
   });
 
-  console.log("User connected:", userId);
-
-  /* OPTIONAL SAFETY: validate before every action */
+  /* validate before every action */
   async function valid() {
     const s = await userRef.once("value");
     const d = s.val();
@@ -89,28 +77,16 @@ io.on("connection", async (socket) => {
   /* ---------- CALL EVENTS ---------- */
   socket.on("call-user", async ({ to }) => {
     const from = socket.userId;
-
     if (from === to) return;
-
-    console.log("ROOM LIST BEFORE EMIT:", io.sockets.adapter.rooms);
-
-    console.log("CALL REQUEST:", from, "->", to);
 
     if (!(await valid())) return socket.emit("force-logout");
 
     const snap = await db.ref("status/" + to).once("value");
     const data = snap.val();
-
     if (!data?.online) {
       return socket.emit("user-offline");
     }
-
-    // ✅ send call
-    io.to(normalize(to)).emit("incoming-call", {
-      from: normalize(from),
-    });
-
-    console.log("EMIT DONE TO ROOM:", to);
+    io.to(to).emit("incoming-call", { from });
   });
 
   socket.on("call-accepted", async ({ to }) => {
@@ -119,10 +95,7 @@ io.on("connection", async (socket) => {
       socket.disconnect(true);
       return;
     }
-
-    io.to(normalize(to)).emit("call-accepted", {
-      from: normalize(socket.userId),
-    });
+    io.to(to).emit("call-accepted", { from: socket.userId });
   });
 
   socket.on("offer", async ({ to, offer }) => {
@@ -131,8 +104,7 @@ io.on("connection", async (socket) => {
       socket.disconnect(true);
       return;
     }
-
-    io.to(normalize(to)).emit("offer", offer);
+    io.to(to).emit("offer", offer);
   });
 
   socket.on("answer", async ({ to, answer }) => {
@@ -141,14 +113,12 @@ io.on("connection", async (socket) => {
       socket.disconnect(true);
       return;
     }
-
-    io.to(normalize(to)).emit("answer", answer);
+    io.to(to).emit("answer", answer);
   });
 
   socket.on("call-rejected", async ({ to }) => {
     if (!(await valid())) return;
-
-    io.to(normalize(to)).emit("call-rejected");
+    io.to(to).emit("call-rejected");
   });
 
   socket.on("ice-candidate", async ({ to, candidate }) => {
@@ -157,8 +127,7 @@ io.on("connection", async (socket) => {
       socket.disconnect(true);
       return;
     }
-
-    io.to(normalize(to)).emit("ice-candidate", candidate);
+    io.to(to).emit("ice-candidate", candidate);
   });
 
   socket.on("end-call", async ({ to }) => {
@@ -167,26 +136,18 @@ io.on("connection", async (socket) => {
       socket.disconnect(true);
       return;
     }
-
-    io.to(normalize(to)).emit("call-ended");
+    io.to(to).emit("call-ended");
   });
 
   socket.on("disconnect", async () => {
-    try {
-      const snap = await userRef.once("value");
-      const data = snap.val();
-
-      if (data?.sessionId === socket.sessionId) {
-        await userRef.update({
-          online: false,
-          socketId: null,
-          lastSeen: Date.now(),
-        });
-      }
-
-      console.log("Disconnected:", socket.userId);
-    } catch (e) {
-      console.error("Disconnect error:", e);
+    const snap = await userRef.once("value");
+    const data = snap.val();
+    if (data?.sessionId === socket.sessionId) {
+      await userRef.update({
+        online: false,
+        socketId: null,
+        lastSeen: Date.now(),
+      });
     }
   });
 });

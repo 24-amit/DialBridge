@@ -940,7 +940,6 @@
 
     <!-- ======== SCRIPTS ======== -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, addDoc, query, where, doc, getDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -955,7 +954,6 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        // const auth = getAuth(app);
         const db = getFirestore(app);
         const rtdb = getDatabase(app);
         const Store = {
@@ -975,11 +973,10 @@
 
             if (savedUser) {
                 myNumber = savedUser;
-                startApp(); // auto login
+                startApp();
                 return;
             }
 
-            // Focus phone input (desktop + some Android)
             const phoneInput = document.getElementById("phone");
 
             setTimeout(() => {
@@ -1027,7 +1024,7 @@
         let socket, myNumber, currentCallUser, number = "";
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
-        let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
+        let CALL_STATE = "IDLE";
         window.sessionId = crypto.randomUUID();
 
         const deleteBtn = document.getElementById("deleteBtn");
@@ -1083,17 +1080,14 @@
                 return;
             }
 
-            // Store temporarily
             Store.setItem("tempPhone", normalize(phone));
 
-            // UI changes
             document.querySelector('.login-box').classList.add('hidden');
             document.getElementById('otpBox').classList.remove('hidden');
 
             message.innerText = "OTP sent";
             message.className = "success";
 
-            // ✅ Auto-focus OTP
             setTimeout(() => {
                 const otpInput = document.getElementById("otp");
                 otpInput.focus();
@@ -1137,15 +1131,8 @@
             const userRef = ref(rtdb, "status/" + normalize(myNumber));
 
             const snap = await get(userRef);
-            const existing = snap.val();
 
-            // FORCE OLD DEVICE OUT LOGIC
-            if (existing?.sessionId && existing.sessionId !== window.sessionId) {
-                // another device already active
-            }
-
-            // overwrite session (THIS IS THE KEY PART)
-            await set(userRef, {
+            await update(userRef, {
                 online: true,
                 lastSeen: Date.now(),
                 sessionId: window.sessionId
@@ -1157,13 +1144,10 @@
                 const data = snap.val();
                 if (!data) return;
 
-                // ignore initial sync glitch
                 if (!window.sessionId) return;
 
-                // 🔥 only react when session mismatches
                 if (data.sessionId && data.sessionId !== window.sessionId) {
 
-                    // prevent multiple triggers
                     window.__forceLogoutTriggered = true;
 
                     alert("Logged in on another device");
@@ -1183,13 +1167,11 @@
 
             switchTab("dialpad");
 
-            // AUTO OFFLINE
             onDisconnect(userRef).set({
                 online: false,
                 lastSeen: Date.now()
             });
 
-            // HEARTBEAT
             setInterval(async () => {
                 await update(userRef, {
                     lastSeen: Date.now(),
@@ -1197,7 +1179,8 @@
                 });
             }, 10000);
 
-            document.getElementById("userLabel").innerText = "You: " + normalize(myNumber);
+            document.getElementById("userLabel").innerText =
+                "You: " + normalize(myNumber).replace("+91", "+91 ");
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
 
@@ -1206,15 +1189,6 @@
             socket = io("https://dialbridge.onrender.com", {
                 query: { userId: myNumber, sessionId: window.sessionId },
                 transports: ["polling", "websocket"]
-            });
-
-            socket.on("connect", () => {
-                console.log("Connected:", socket.id);
-                console.log("User room:", myNumber);
-            });
-
-            socket.on("debug", (data) => {
-                console.log("🧪 DEBUG FROM CLIENT:", data);
             });
 
             setupSocketEvents();
@@ -1281,19 +1255,14 @@
             number = num.replace("+91", "");
             updateDisplay();
 
-            // switch to dialpad automatically
             switchTab("dialpad");
 
-            // also update radio button UI
             document.querySelector("input[value='dialpad']").checked = true;
         };
 
         /* ---- SOCKET EVENTS ---- */
         function setupSocketEvents() {
             socket.on("incoming-call", (data) => {
-                console.log("INCOMING CALL RECEIVED:", data);
-
-                // 🚫 reject if busy
                 if (CALL_STATE !== "IDLE") {
                     socket.emit("call-rejected", {
                         to: data.from,
@@ -1360,11 +1329,8 @@
             });
 
             socket.on("reconnect", () => {
-                console.log("Reconnected");
-
                 socket.emit("register", myNumber);
 
-                // Reset call if broken
                 if (CALL_STATE !== "IDLE") {
                     cleanupCall();
                     stopTimer();
@@ -1486,7 +1452,6 @@
 
                 callStartTime = Date.now();
                 currentCallUser = target;
-                console.log("CALLING TO:", currentCallUser);
 
                 CALL_STATE = "CALLING";
 
@@ -1612,7 +1577,6 @@
         }
 
         async function handleOffer(offer) {
-
             if (!peer) await startWebRTC(false);
 
             await peer.setRemoteDescription(new RTCSessionDescription(offer));
@@ -1625,7 +1589,7 @@
             await peer.setLocalDescription(answer);
 
             socket.emit("answer", {
-                to: currentCallUser,
+                to: normalize(currentCallUser),
                 answer
             });
         }
