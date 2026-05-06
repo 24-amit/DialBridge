@@ -4,7 +4,6 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const admin = require("firebase-admin");
-const users = new Map();
 
 admin.initializeApp({
   credential: admin.credential.cert(require("./firebase-service-account.json")),
@@ -43,7 +42,7 @@ io.on("connection", async (socket) => {
   socket.userId = userId;
   socket.sessionId = sessionId;
 
-  users.set(userId, socket.id);
+  socket.join(userId);
 
   const userRef = db.ref("status/" + userId);
 
@@ -76,13 +75,15 @@ io.on("connection", async (socket) => {
   socket.on("call-user", async ({ to, from }) => {
     if (!(await valid())) return socket.emit("force-logout");
 
-    const socketId = users.get(to);
+    const snap = await db.ref("status/" + to).once("value");
+    const data = snap.val();
 
-    // ❌ user not online
-    if (!socketId) return socket.emit("user-offline");
+    if (!data?.online) {
+      return socket.emit("user-offline");
+    }
 
     // ✅ send call
-    io.to(socketId).emit("incoming-call", { from });
+    io.to(to).emit("incoming-call", { from });
   });
 
   socket.on("call-accepted", async ({ to }) => {
@@ -92,11 +93,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const socketId = users.get(to);
-
-    if (socketId) {
-      io.to(socketId).emit("call-accepted");
-    }
+    io.to(to).emit("call-accepted");
   });
 
   socket.on("offer", async ({ to, offer }) => {
@@ -106,11 +103,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const socketId = users.get(to);
-
-    if (socketId) {
-      io.to(socketId).emit("offer", offer);
-    }
+    io.to(to).emit("offer", offer);
   });
 
   socket.on("answer", async ({ to, answer }) => {
@@ -120,20 +113,13 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const socketId = users.get(to);
-
-    if (socketId) {
-      io.to(socketId).emit("answer", answer);
-    }
+    io.to(to).emit("answer", answer);
   });
 
   socket.on("call-rejected", async ({ to }) => {
-    const snap = await db.ref("status/" + to).once("value");
-    const data = snap.val();
+    if (!(await valid())) return;
 
-    if (data?.socketId) {
-      io.to(data.socketId).emit("call-rejected");
-    }
+    io.to(to).emit("call-rejected");
   });
 
   socket.on("ice-candidate", async ({ to, candidate }) => {
@@ -143,11 +129,7 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const socketId = users.get(to);
-
-    if (socketId) {
-      io.to(socketId).emit("ice-candidate", candidate);
-    }
+    io.to(to).emit("ice-candidate", candidate);
   });
 
   socket.on("end-call", async ({ to, from }) => {
@@ -157,32 +139,26 @@ io.on("connection", async (socket) => {
       return;
     }
 
-    const socketId = users.get(to);
-
-    if (socketId) {
-      io.to(socketId).emit("call-ended");
-    }
+    io.to(to).emit("call-ended");
   });
 
   socket.on("disconnect", async () => {
-    users.delete(socket.userId);
+    try {
+      const snap = await userRef.once("value");
+      const data = snap.val();
 
-    const snap = await userRef.once("value");
-    const data = snap.val();
+      if (data?.sessionId === socket.sessionId) {
+        await userRef.update({
+          online: false,
+          socketId: null,
+          lastSeen: Date.now(),
+        });
+      }
 
-    if (
-      data?.socketId === socket.id &&
-      data?.sessionId === socket.sessionId &&
-      data?.online === true
-    ) {
-      await userRef.update({
-        online: false,
-        socketId: null,
-        lastSeen: Date.now(),
-      });
+      console.log("Disconnected:", socket.userId);
+    } catch (e) {
+      console.error("Disconnect error:", e);
     }
-
-    console.log("Disconnected:", socket.userId);
   });
 });
 
