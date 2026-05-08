@@ -1197,7 +1197,7 @@
 
             socket = io("https://dialbridge.onrender.com", {
                 query: {
-                    userId: normalize(myNumber),
+                    userId: myNumber,
                     sessionId: window.sessionId
                 },
                 transports: ["websocket", "polling"]
@@ -1274,11 +1274,11 @@
 
         /* ---- SOCKET EVENTS ---- */
         function setupSocketEvents() {
-            socket.on("incoming-call", (data) => {
-                socket.onAny((event, ...args) => {
-                    console.log("📥 CLIENT RECEIVED EVENT:", event, args);
-                });
+            socket.onAny((event, ...args) => {
+                console.log("📥 CLIENT RECEIVED EVENT:", event, args);
+            });
 
+            socket.on("incoming-call", (data) => {
                 if (CALL_STATE !== "IDLE") {
                     socket.emit("call-rejected", {
                         to: data.from,
@@ -1449,7 +1449,7 @@
                 return;
             }
 
-            if (!number) return;
+            if (!number || CALL_STATE !== "IDLE") return;
 
             const target = normalize(number);
             if (!target) {
@@ -1475,13 +1475,14 @@
                 currentCallUser = target;
 
                 CALL_STATE = "CALLING";
+                showCallScreen("Calling...");
 
                 socket.emit("call-user", {
-                    to: normalize(currentCallUser),
+                    to: currentCallUser,
                     from: normalize(myNumber)
                 });
 
-                showCallScreen("Calling...");
+                // showCallScreen("Calling...");
 
             } catch (err) {
                 console.error(err);
@@ -1490,31 +1491,40 @@
         };
 
         window.acceptCall = async () => {
-            CALL_STATE = "IN_CALL";
-
-            currentCallUser = caller;
-
-            socket.emit("call-accepted", {
-                to: normalize(currentCallUser),
-                from: normalize(myNumber)
-            });
-
             document.getElementById('incoming').style.display = 'none';
 
+            CALL_STATE = "IN_CALL";
+            currentCallUser = caller;
+
             showCallScreen("Connecting...");
+            socket.emit("call-accepted", {
+                to: normalize(currentCallUser)
+                // from: normalize(myNumber)
+            });
+
+            // document.getElementById('incoming').style.display = 'none';
+
+            // showCallScreen("Connecting...");
             await startWebRTC(false);
         };
 
         window.rejectCall = () => {
             if (!caller) return;
 
+            document.getElementById('incoming').style.display = 'none';
+
+            CALL_STATE = "IDLE";
+
             socket.emit("call-rejected", {
-                to: normalize(caller),
-                from: normalize(myNumber)
+                to: normalize(caller)
+                // from: normalize(myNumber)
             });
 
-            document.getElementById('incoming').style.display = 'none';
-            CALL_STATE = "IDLE";
+            caller = null;
+            currentCallUser = null;
+
+            // document.getElementById('incoming').style.display = 'none';
+            // CALL_STATE = "IDLE";
         };
 
         window.endCall = async () => {

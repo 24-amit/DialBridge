@@ -1148,27 +1148,27 @@
                 sessionId: window.sessionId
             });
 
+            let isFirstSnap = true;
             onValue(userRef, (snap) => {
+                if (isFirstSnap) {
+                    isFirstSnap = false;   // ← skip initial read
+                    return;
+                }
+
                 if (window.__forceLogoutTriggered) return;
 
                 const data = snap.val();
                 if (!data) return;
-
                 if (!window.sessionId) return;
 
                 if (data.sessionId && data.sessionId !== window.sessionId) {
-
                     window.__forceLogoutTriggered = true;
-
                     alert("Logged in on another device");
-
                     try {
                         socket.emit("force-logout");
                         socket.disconnect();
                     } catch (e) { }
-
                     Store.removeItem("userNumber");
-
                     setTimeout(() => {
                         location.reload();
                     }, 200);
