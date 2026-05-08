@@ -24,6 +24,7 @@ const io = new Server(server, {
   cors: {
     origin: "*",
   },
+  transports: ["websocket", "polling"],
 });
 
 // Serve frontend folder
@@ -43,9 +44,12 @@ io.on("connection", async (socket) => {
   }
 
   let { userId, sessionId } = socket.handshake.query;
-  if (!userId.startsWith("+91")) {
-    userId = normalize(userId);
+  if (!userId) {
+    socket.disconnect(true);
+    return;
   }
+
+  userId = normalize(userId);
 
   if (!userId || !sessionId) {
     socket.disconnect(true);
@@ -86,6 +90,10 @@ io.on("connection", async (socket) => {
     const d = s.val();
     return d?.sessionId === socket.sessionId;
   }
+
+  socket.onAny((event, ...args) => {
+    console.log("📩 SERVER RECEIVED:", event, args);
+  });
 
   /* ---------- CALL EVENTS ---------- */
   socket.on("call-user", async ({ to }) => {

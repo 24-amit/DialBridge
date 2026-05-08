@@ -1191,14 +1191,11 @@
             loadCallHistory(myNumber);
 
             socket = io("https://dialbridge.onrender.com", {
-                query: { userId: normalize(myNumber), sessionId: window.sessionId },
-                transports: ["polling", "websocket"]
-            });
-
-            console.log("MY NUMBER:", myNumber);
-
-            socket.on("connect", () => {
-                console.log("✅ SOCKET CONNECTED:", socket.id);
+                query: {
+                    userId: normalize(myNumber),
+                    sessionId: window.sessionId
+                },
+                transports: ["websocket", "polling"]
             });
 
             setupSocketEvents();
@@ -1273,7 +1270,9 @@
         /* ---- SOCKET EVENTS ---- */
         function setupSocketEvents() {
             socket.on("incoming-call", (data) => {
-                console.log("INCOMING CALL EVENT", data);
+                socket.onAny((event, ...args) => {
+                    console.log("📥 CLIENT RECEIVED EVENT:", event, args);
+                });
 
                 if (CALL_STATE !== "IDLE") {
                     socket.emit("call-rejected", {
@@ -1440,15 +1439,7 @@
 
         /* ---- CALL FLOW ---- */
         window.makeCall = async () => {
-            console.log("CALL BUTTON CLICKED");
-
-            console.log("Socket:", socket);
-            console.log("Connected:", socket?.connected);
-
-            console.log("Number:", number);
-
             if (!socket || !socket.connected) {
-                console.log("❌ SOCKET NOT CONNECTED");
                 alert("Not connected to server yet");
                 return;
             }
@@ -1456,17 +1447,14 @@
             if (!number) return;
 
             const target = normalize(number);
-            console.log("Target:", target);
             if (!target) {
                 alert("Invalid number");
                 return;
             }
 
             try {
-                console.log("Above of statusSnap Checking user status...");
                 const statusSnap = await get(ref(rtdb, "status/" + target));
                 const status = statusSnap.val();
-                console.log("Checking user status...");
 
                 if (!statusSnap.exists()) {
                     alert("User not registered");
@@ -1483,8 +1471,8 @@
 
                 CALL_STATE = "CALLING";
 
-                console.log("🚀 EMITTING CALL USER NOW");
-                
+                console.log("🔥 SENDING call-user EVENT");
+
                 socket.emit("call-user", {
                     to: normalize(currentCallUser),
                     from: normalize(myNumber)
