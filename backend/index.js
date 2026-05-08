@@ -33,7 +33,9 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", async (socket) => {
-  console.log("🟢 NEW CONNECTION:", socket.id);
+  socket.on("connect", async () => {
+    console.log("✅ CONNECTED:", socket.id);
+  });
 
   function normalize(num) {
     const digits = (num || "").toString().replace(/\D/g, "");
@@ -105,7 +107,9 @@ io.on("connection", async (socket) => {
 
     const snap = await db.ref("status/" + to).once("value");
     const data = snap.val();
-    if (!data?.online) {
+    const targetSocket = io.sockets.sockets.get(data?.socketId);
+
+    if (!data?.online || !targetSocket) {
       return socket.emit("user-offline");
     }
     io.to(to).emit("incoming-call", { from });
@@ -162,15 +166,30 @@ io.on("connection", async (socket) => {
   });
 
   socket.on("disconnect", async () => {
-    const snap = await userRef.once("value");
-    const data = snap.val();
-    if (data?.sessionId === socket.sessionId) {
-      await userRef.update({
-        online: false,
-        socketId: null,
-        lastSeen: Date.now(),
-      });
-    }
+    console.log("❌ DISCONNECTED:", socket.id);
+
+    setTimeout(async () => {
+      try {
+        const snap = await userRef.once("value");
+        const data = snap.val();
+
+        // only mark offline if THIS socket is still active owner
+        if (
+          data?.sessionId === socket.sessionId &&
+          data?.socketId === socket.id
+        ) {
+          await userRef.update({
+            online: false,
+            socketId: null,
+            lastSeen: Date.now(),
+          });
+
+          console.log("🔴 USER OFFLINE:", userId);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 10000); // wait 10 sec before offline
   });
 });
 

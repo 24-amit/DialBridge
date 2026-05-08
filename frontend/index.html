@@ -1414,8 +1414,12 @@
 
         /* ---- CALL FLOW ---- */
         window.makeCall = async () => {
-            if (!socket || !socket.connected) {
-                alert("Not connected to server yet");
+            socket.on("connect", async () => {
+                console.log("✅ CONNECTED:", socket.id);
+            });
+
+            if (!socket?.connected) {
+                alert("Connecting to server...");
                 return;
             }
 
