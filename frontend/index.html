@@ -1140,18 +1140,10 @@
 
             const userRef = ref(rtdb, "status/" + normalize(myNumber));
 
-            const snap = await get(userRef);
-
-            await update(userRef, {
-                online: true,
-                lastSeen: Date.now(),
-                sessionId: window.sessionId
-            });
-
             let isFirstSnap = true;
             onValue(userRef, (snap) => {
                 if (isFirstSnap) {
-                    isFirstSnap = false;   // ← skip initial read
+                    isFirstSnap = false;
                     return;
                 }
 
@@ -1176,18 +1168,6 @@
             });
 
             switchTab("dialpad");
-
-            onDisconnect(userRef).set({
-                online: false,
-                lastSeen: Date.now()
-            });
-
-            setInterval(async () => {
-                await update(userRef, {
-                    lastSeen: Date.now(),
-                    online: true
-                });
-            }, 10000);
 
             document.getElementById("userLabel").innerText = "You: " + formatNumber(myNumber);
             document.getElementById('login').style.display = 'none';
@@ -1361,16 +1341,6 @@
                 alert("Logged in on another device");
                 socket.disconnect();
                 location.reload();
-            });
-
-            socket.on("disconnect", async () => {
-                const userRef = ref(rtdb, "status/" + normalize(myNumber));
-
-                await update(userRef, {
-                    online: false,
-                    socketId: null,
-                    lastSeen: Date.now(),
-                });
             });
         }
 

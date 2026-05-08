@@ -72,7 +72,7 @@ io.on("connection", async (socket) => {
     io.sockets.sockets.get(data.socketId)?.disconnect(true);
   }
 
-  await userRef.set({
+  await userRef.update({
     sessionId,
     socketId: socket.id,
     online: true,
@@ -83,7 +83,8 @@ io.on("connection", async (socket) => {
   async function valid() {
     const s = await userRef.once("value");
     const d = s.val();
-    return d?.sessionId === socket.sessionId;
+
+    return d?.sessionId === socket.sessionId && d?.socketId === socket.id;
   }
 
   socket.onAny((event, ...args) => {
