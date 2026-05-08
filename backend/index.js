@@ -33,9 +33,7 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", async (socket) => {
-  socket.on("connect", async () => {
-    console.log("✅ CONNECTED:", socket.id);
-  });
+  console.log("✅ CONNECTED:", socket.id);
 
   function normalize(num) {
     const digits = (num || "").toString().replace(/\D/g, "");
@@ -189,7 +187,7 @@ io.on("connection", async (socket) => {
       } catch (err) {
         console.error(err);
       }
-    }, 10000); // wait 10 sec before offline
+    }, 3000);
   });
 });
 

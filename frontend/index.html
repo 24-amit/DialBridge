@@ -1140,27 +1140,30 @@
 
             const userRef = ref(rtdb, "status/" + normalize(myNumber));
 
-            let isFirstSnap = true;
             onValue(userRef, (snap) => {
-                if (isFirstSnap) {
-                    isFirstSnap = false;
-                    return;
-                }
-
-                if (window.__forceLogoutTriggered) return;
-
                 const data = snap.val();
+
                 if (!data) return;
                 if (!window.sessionId) return;
+                if (window.__forceLogoutTriggered) return;
 
-                if (data.sessionId && data.sessionId !== window.sessionId) {
+                if (!socket?.connected) return;
+
+                if (
+                    data.sessionId &&
+                    data.sessionId !== window.sessionId &&
+                    data.online === true
+                ) {
                     window.__forceLogoutTriggered = true;
+
                     alert("Logged in on another device");
+
                     try {
-                        socket.emit("force-logout");
                         socket.disconnect();
                     } catch (e) { }
+
                     Store.removeItem("userNumber");
+
                     setTimeout(() => {
                         location.reload();
                     }, 200);
@@ -1181,6 +1184,17 @@
                     sessionId: window.sessionId
                 },
                 transports: ["websocket", "polling"]
+            });
+
+            socket.on("connect", async () => {
+                console.log("✅ SOCKET CONNECTED:", socket.id);
+
+                await update(ref(rtdb, "status/" + myNumber), {
+                    online: true,
+                    socketId: socket.id,
+                    sessionId: window.sessionId,
+                    lastSeen: Date.now()
+                });
             });
 
             setupSocketEvents();
@@ -1414,10 +1428,6 @@
 
         /* ---- CALL FLOW ---- */
         window.makeCall = async () => {
-            socket.on("connect", async () => {
-                console.log("✅ CONNECTED:", socket.id);
-            });
-
             if (!socket?.connected) {
                 alert("Connecting to server...");
                 return;
