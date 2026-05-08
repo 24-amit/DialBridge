@@ -92,7 +92,7 @@ io.on("connection", async (socket) => {
 
   /* ---------- CALL EVENTS ---------- */
   socket.on("call-user", async ({ to, from }) => {
-    const from = socket.userId;
+    // const from = socket.userId;
 
     to = normalize(to);
 
