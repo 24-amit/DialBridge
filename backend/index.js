@@ -1,8 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-
-console.log("🔥 SERVER VERSION: CALL-DEBUG-123");
-
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
@@ -60,11 +57,9 @@ io.on("connection", async (socket) => {
   socket.sessionId = sessionId;
 
   socket.join(userId);
-  console.log("User joined room:", userId);
 
   setTimeout(() => {
     const room = io.sockets.adapter.rooms.get(userId);
-    console.log("ROOM MEMBERS for", userId, ":", room);
   }, 1000);
 
   const userRef = db.ref("status/" + userId);
@@ -96,7 +91,7 @@ io.on("connection", async (socket) => {
   });
 
   /* ---------- CALL EVENTS ---------- */
-  socket.on("call-user", async ({ to }) => {
+  socket.on("call-user", async ({ to, from }) => {
     const from = socket.userId;
 
     to = normalize(to);
@@ -105,21 +100,13 @@ io.on("connection", async (socket) => {
     console.log("FROM:", from);
     console.log("TO:", to);
 
-    console.log("TO LENGTH:", to.length);
-    console.log("ROOM KEY LENGTH:", from.length);
-
-    console.log("🧠 ACTIVE ROOMS:");
-    console.log("Available rooms:", [...io.sockets.adapter.rooms.keys()]);
-
     if (!(await valid())) return socket.emit("force-logout");
 
     const snap = await db.ref("status/" + to).once("value");
     const data = snap.val();
     if (!data?.online) {
-      console.log("❌ USER OFFLINE");
       return socket.emit("user-offline");
     }
-    console.log("✅ EMITTING incoming-call TO:", to);
     io.to(to).emit("incoming-call", { from });
   });
 

@@ -1130,6 +1130,11 @@
 
         /* ---- APP START ---- */
         async function startApp() {
+            if (socket && socket.connected) {
+                console.log("⚠ SOCKET ALREADY EXISTS");
+                return;
+            }
+
             myNumber = myNumber || Store.getItem("userNumber");
             myNumber = normalize(myNumber);
 
@@ -1470,8 +1475,6 @@
                 currentCallUser = target;
 
                 CALL_STATE = "CALLING";
-
-                console.log("🔥 SENDING call-user EVENT");
 
                 socket.emit("call-user", {
                     to: normalize(currentCallUser),
