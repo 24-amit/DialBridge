@@ -1302,6 +1302,18 @@
                 lastSeen: Date.now()
             });
 
+            socket.on("connect", async () => {
+                await update(
+                    ref(rtdb, "status/" + myNumber),
+                    {
+                        online: true,
+                        socketId: socket.id,
+                        sessionId: window.sessionId,
+                        lastSeen: Date.now()
+                    }
+                );
+            });
+
             setupSocketEvents();
             updateDisplay();
         }
