@@ -1287,31 +1287,30 @@
                 }
             );
 
-            const statusRef = ref(rtdb, "status/" + myNumber);
-
-            await update(statusRef, {
-                online: true,
-                socketId: socket.id,
-                sessionId: window.sessionId,
-                lastSeen: Date.now()
-            });
-
-            onDisconnect(statusRef).update({
-                online: false,
-                socketId: null,
-                lastSeen: Date.now()
-            });
-
             socket.on("connect", async () => {
-                await update(
-                    ref(rtdb, "status/" + myNumber),
-                    {
-                        online: true,
-                        socketId: socket.id,
-                        sessionId: window.sessionId,
-                        lastSeen: Date.now()
-                    }
-                );
+
+                console.log("✅ SOCKET CONNECTED:", socket.id);
+
+                const statusRef = ref(rtdb, "status/" + myNumber);
+
+                // FIRST cancel old disconnect handlers
+                await onDisconnect(statusRef).cancel();
+
+                // THEN mark online
+                await update(statusRef, {
+                    online: true,
+                    socketId: socket.id,
+                    sessionId: window.sessionId
+                });
+
+                // THEN register disconnect handler
+                onDisconnect(statusRef).update({
+                    online: false,
+                    socketId: null,
+                    sessionId: null,
+                    lastSeen: Date.now()
+                });
+
             });
 
             setupSocketEvents();
@@ -1321,34 +1320,22 @@
         // ===== LOGOUT =====
         window.logout = async () => {
             try {
-                if (!myNumber) {
-                    Store.removeItem("userNumber");
-                    location.reload();
-                    return;
-                }
+                const statusRef = ref(rtdb, "status/" + normalize(myNumber));
+                await onDisconnect(statusRef).cancel();
 
-                // update realtime db status
-                await update(ref(rtdb, "status/" + normalize(myNumber)), {
+                await update(statusRef, {
                     online: false,
                     socketId: null,
                     sessionId: null,
                     lastSeen: Date.now()
                 });
 
-                // disconnect socket
-                if (socket?.connected) {
-                    socket.disconnect();
-                }
-
-                // clear storage
+                socket?.disconnect();
                 Store.removeItem("userNumber");
                 Store.removeItem("tempPhone");
-
-                // reload app
                 location.reload();
-
             } catch (err) {
-                console.error("Logout Error:", err);
+                console.error(err);
             }
         };
 
