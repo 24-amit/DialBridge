@@ -1036,6 +1036,10 @@
             }
         };
 
+        function isValidPhone(num) {
+            return /^\+91\d{10}$/.test(num);
+        }
+
         let socket, myNumber, currentCallUser, number = "";
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
@@ -1269,7 +1273,6 @@
         }
 
         window.dialFromHistory = (num) => {
-            number = normalize(num).slice(-10);
             updateDisplay();
 
             switchTab("dialpad");
@@ -1398,7 +1401,7 @@
             const cursor = document.getElementById('cursor');
             const bar = document.getElementById('number');
             if (number) {
-                text.innerText = "+91 " + number;
+                text.innerText = formatNumber(number);
                 cursor.style.display = 'inline-block';
                 bar.classList.add('has-number');
             } else {
@@ -1409,13 +1412,20 @@
         }
 
         window.press = (n) => {
-            if (number.length < 10) number += n;
+            const digits = number.replace(/\D/g, "").slice(2);
+
+            if (digits.length >= 10) return;
+
+            number += n;
+
             updateDisplay();
         };
 
         window.removeNumber = () => {
-            if (!number) return;
+            if (number.length <= 3) return;
+
             number = number.slice(0, -1);
+
             updateDisplay();
         };
 
@@ -1446,8 +1456,8 @@
 
             if (!number || CALL_STATE !== "IDLE") return;
 
-            const target = normalize(number);
-            if (!target) {
+            const target = number;
+            if (!isValidPhone(target)) {
                 alert("Invalid number");
                 return;
             }
