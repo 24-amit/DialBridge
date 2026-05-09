@@ -3,14 +3,6 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
-const admin = require("firebase-admin");
-
-admin.initializeApp({
-  credential: admin.credential.cert(require("./firebase-service-account.json")),
-  databaseURL: "https://dialbridge-972c9-default-rtdb.firebaseio.com",
-});
-
-const db = admin.database();
 
 const app = express();
 app.use(cors());
@@ -21,7 +13,6 @@ const io = new Server(server, {
   cors: {
     origin: "*",
   },
-  transports: ["websocket", "polling"],
 });
 
 // Serve frontend folder
@@ -32,209 +23,66 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
-io.on("connection", async (socket) => {
-  console.log("✅ CONNECTED:", socket.id);
+const onlineUsers = new Map();
 
-  function normalize(num) {
-    if (!num) return null;
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
 
-    let digits = num.toString().replace(/\D/g, "");
-
-    // remove country code if already exists
-    if (digits.startsWith("91") && digits.length > 10) {
-      digits = digits.slice(-10);
-    }
-
-    // strict validation
-    if (digits.length !== 10) return null;
-
-    return "+91" + digits;
-  }
-
-  let { userId, sessionId } = socket.handshake.query;
-  if (!userId) {
-    socket.disconnect(true);
-    return;
-  }
-
-  userId = normalize(userId);
-
-  if (!userId || !sessionId) {
-    socket.disconnect(true);
-    return;
-  }
-
-  socket.userId = userId;
-  socket.sessionId = sessionId;
-
-  socket.join(normalize(userId));
-
-  setTimeout(() => {
-    const room = io.sockets.adapter.rooms.get(userId);
-  }, 1000);
-
-  const userRef = db.ref("status/" + userId);
-
-  const snap = await userRef.once("value");
-  const data = snap.val();
-
-  if (data?.socketId && data.socketId !== socket.id) {
-    io.to(data.socketId).emit("force-logout");
-    io.sockets.sockets.get(data.socketId)?.disconnect(true);
-  }
-
-  await userRef.update({
-    sessionId,
-    socketId: socket.id,
-    online: true,
-    lastSeen: Date.now(),
+  socket.on("register", (phone) => {
+    onlineUsers.set(phone, socket.id);
   });
 
-  /* validate before every action */
-  async function valid() {
-    const s = await userRef.once("value");
-    const d = s.val();
+  socket.on("call-user", ({ to, from }) => {
+    const receiver = onlineUsers.get(to);
 
-    return d?.sessionId === socket.sessionId && d?.socketId === socket.id;
-  }
-
-  socket.onAny((event, ...args) => {
-    console.log("📩 SERVER RECEIVED:", event, args);
-  });
-
-  /* ---------- CALL EVENTS ---------- */
-  socket.on("call-user", async ({ to, from }) => {
-    // const from = socket.userId;
-
-    to = normalize(to);
-
-    console.log("📞 CALL REQUEST");
-    console.log("FROM:", from);
-    console.log("TO:", to);
-
-    if (!(await valid())) return socket.emit("force-logout");
-
-    const snap = await db.ref("status/" + to).once("value");
-    const data = snap.val();
-    const targetSocket = io.sockets.sockets.get(data?.socketId);
-
-    if (!data?.online || !targetSocket) {
-      return socket.emit("user-offline");
-    }
-    targetSocket.emit("incoming-call", { from });
-  });
-
-  socket.on("call-accepted", async ({ to }) => {
-    if (!(await valid())) {
-      socket.emit("force-logout");
-      socket.disconnect(true);
-      return;
-    }
-    const snap = await db.ref("status/" + normalize(to)).once("value");
-    const data = snap.val();
-
-    if (data?.socketId) {
-      io.to(data.socketId).emit("call-accepted", {
-        from: socket.userId,
-      });
+    if (!receiver) {
+      socket.emit("user-offline");
+    } else {
+      socket.emit("call-ringing");
+      io.to(receiver).emit("incoming-call", { from });
     }
   });
 
-  socket.on("offer", async ({ to, offer }) => {
-    if (!(await valid())) {
-      socket.emit("force-logout");
-      socket.disconnect(true);
-      return;
-    }
-    const snap = await db.ref("status/" + normalize(to)).once("value");
-    const data = snap.val();
-
-    if (data?.socketId) {
-      io.to(data.socketId).emit("offer", offer);
-    }
+  socket.on("call-accepted", ({ to }) => {
+    const caller = onlineUsers.get(to);
+    io.to(caller).emit("call-accepted");
   });
 
-  socket.on("answer", async ({ to, answer }) => {
-    if (!(await valid())) {
-      socket.emit("force-logout");
-      socket.disconnect(true);
-      return;
-    }
-    const snap = await db.ref("status/" + normalize(to)).once("value");
-    const data = snap.val();
-
-    if (data?.socketId) {
-      io.to(data.socketId).emit("answer", answer);
-    }
+  socket.on("offer", ({ to, offer }) => {
+    const receiver = onlineUsers.get(to);
+    io.to(receiver).emit("offer", offer);
   });
 
-  socket.on("call-rejected", async ({ to }) => {
-    if (!(await valid())) {
-      socket.emit("force-logout");
-      return;
-    }
-
-    const snap = await db.ref("status/" + normalize(to)).once("value");
-    const data = snap.val();
-
-    if (data?.socketId) {
-      io.to(data.socketId).emit("call-rejected");
-    }
+  socket.on("answer", ({ to, answer }) => {
+    const caller = onlineUsers.get(to);
+    io.to(caller).emit("answer", answer);
   });
 
-  socket.on("ice-candidate", async ({ to, candidate }) => {
-    if (!(await valid())) {
-      socket.emit("force-logout");
-      socket.disconnect(true);
-      return;
-    }
-    const snap = await db.ref("status/" + normalize(to)).once("value");
-    const data = snap.val();
-
-    if (data?.socketId) {
-      io.to(data.socketId).emit("ice-candidate", candidate);
-    }
+  socket.on("ice-candidate", ({ to, candidate }) => {
+    const receiver = onlineUsers.get(to);
+    io.to(receiver).emit("ice-candidate", candidate);
   });
 
-  socket.on("end-call", async ({ to }) => {
-    if (!(await valid())) {
-      socket.emit("force-logout");
-      socket.disconnect(true);
-      return;
-    }
-    const snap = await db.ref("status/" + normalize(to)).once("value");
-    const data = snap.val();
+  socket.on("end-call", ({ to, from }) => {
+    const receiver = onlineUsers.get(to);
+    const caller = onlineUsers.get(from);
 
-    if (data?.socketId) {
-      io.to(data.socketId).emit("call-ended");
-    }
+    if (receiver) io.to(receiver).emit("call-ended");
+    if (caller) io.to(caller).emit("call-ended");
   });
 
-  socket.on("disconnect", async () => {
-    console.log("❌ DISCONNECTED:", socket.id);
+  socket.on("connect", () => {
+    console.log("Connected:", socket.id);
+    socket.emit("register", myNumber);
+  });
 
-    setTimeout(async () => {
-      try {
-        const snap = await userRef.once("value");
-        const data = snap.val();
+  socket.on("disconnect", () => {
+    console.log("Disconnected:", socket.id);
+  });
 
-        // only mark offline if THIS socket is still active owner
-        if (
-          data?.sessionId === socket.sessionId &&
-          data?.socketId === socket.id
-        ) {
-          await userRef.update({
-            online: false,
-            socketId: null,
-            lastSeen: Date.now(),
-          });
-
-          console.log("🔴 USER OFFLINE:", userId);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }, 3000);
+  socket.on("reconnect", () => {
+    console.log("Reconnected");
+    socket.emit("register", myNumber);
   });
 });
 

@@ -749,13 +749,13 @@
         <h2>Phone Login</h2>
         <div class="login-box">
             <input type="tel" id="phone" placeholder="Enter 10-digit number" maxlength="10" inputmode="numeric"
-                enterkeyhint="done" autofocus>
+                autofocus>
             <button class="login-btn" onclick="sendOTP()">Send OTP</button>
         </div>
 
         <div id="otpBox" class="hidden">
-            <input type="tel" id="otp" placeholder="Enter OTP" inputmode="numeric" enterkeyhint="done"
-                autocomplete="one-time-code" autofocus>
+            <input type="tel" id="otp" placeholder="Enter OTP" inputmode="numeric" autocomplete="one-time-code"
+                autofocus>
             <button class="login-btn" onclick="verifyOTP()">Verify OTP</button>
         </div>
 
@@ -940,10 +940,11 @@
 
     <!-- ======== SCRIPTS ======== -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, addDoc, query, where, doc, getDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getDatabase, ref, set, onDisconnect, get, update, onValue }
+        import { getDatabase, ref, set, onDisconnect, get, update }
             from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         const firebaseConfig = {
@@ -953,7 +954,12 @@
             appId: "1:112453752302:web:180ceeb4b00997cfa7eaff"
         };
 
+        const formatPhone = (num) => {
+            return num ? num.replace(/^\+91\s?/, "") : "";
+        };
+
         const app = initializeApp(firebaseConfig);
+        // const auth = getAuth(app);
         const db = getFirestore(app);
         const rtdb = getDatabase(app);
         const Store = {
@@ -962,60 +968,32 @@
             removeItem: (k) => localStorage.removeItem(k)
         };
 
-        function normalize(num) {
-            if (!num) return null;
-
-            let digits = num.toString().replace(/\D/g, "");
-
-            // remove country code if already exists
-            if (digits.startsWith("91") && digits.length > 10) {
-                digits = digits.slice(-10);
-            }
-
-            // strict validation
-            if (digits.length !== 10) return null;
-
-            return "+91" + digits;
-        }
-
-        function formatNumber(num) {
-            const n = normalize(num);
-            return n ? n.replace("+91", "+91 ") : "";
-        }
-
         window.onload = () => {
             const savedUser = Store.getItem("userNumber");
 
             if (savedUser) {
                 myNumber = savedUser;
-                startApp();
+                startApp(); // auto login
                 return;
             }
 
+            // Focus phone input (desktop + some Android)
             const phoneInput = document.getElementById("phone");
 
             setTimeout(() => {
                 phoneInput.focus();
             }, 300);
-
-            // 🔥 ENTER KEY SUPPORT
-            document.getElementById("phone").addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
-                    sendOTP();
-                }
-            });
-
-            document.getElementById("otp").addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
-                    verifyOTP();
-                }
-            });
         };
 
         window.logout = async () => {
             if (!myNumber) return;
 
             const userStatusRef = ref(rtdb, "status/" + myNumber);
+
+            await set(userStatusRef, {
+                online: false,
+                lastSeen: Date.now()
+            });
 
             Store.removeItem("userNumber");
             location.reload();
@@ -1039,8 +1017,7 @@
         let socket, myNumber, currentCallUser, number = "";
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
-        let CALL_STATE = "IDLE";
-        window.sessionId = crypto.randomUUID();
+        let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
 
         const deleteBtn = document.getElementById("deleteBtn");
         let holdTimer = null;
@@ -1083,6 +1060,10 @@
             }
         ];
 
+        // window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        // size: 'invisible'
+        // });
+
         /* ---- LOGIN ---- */
         window.sendOTP = () => {
             let phone = document.getElementById('phone').value.trim().replace(/\D/g, "");
@@ -1095,14 +1076,17 @@
                 return;
             }
 
-            Store.setItem("tempPhone", normalize(phone));
+            // Store temporarily
+            Store.setItem("tempPhone", "+91" + phone);
 
+            // UI changes
             document.querySelector('.login-box').classList.add('hidden');
             document.getElementById('otpBox').classList.remove('hidden');
 
             message.innerText = "OTP sent";
             message.className = "success";
 
+            // ✅ Auto-focus OTP
             setTimeout(() => {
                 const otpInput = document.getElementById("otp");
                 otpInput.focus();
@@ -1115,7 +1099,7 @@
 
             try {
                 if (otp === "123456") {
-                    myNumber = normalize(Store.getItem("tempPhone"));
+                    myNumber = Store.getItem("tempPhone");
                     if (!myNumber) {
                         throw new Error("Phone number missing");
                     }
@@ -1141,71 +1125,44 @@
 
         /* ---- APP START ---- */
         async function startApp() {
-            if (socket && socket.connected) {
-                console.log("⚠ SOCKET ALREADY EXISTS");
-                return;
-            }
-
             myNumber = myNumber || Store.getItem("userNumber");
-            myNumber = normalize(myNumber);
 
-            const userRef = ref(rtdb, "status/" + normalize(myNumber));
-
-            onValue(userRef, (snap) => {
-                const data = snap.val();
-
-                if (!data) return;
-                if (!window.sessionId) return;
-                if (window.__forceLogoutTriggered) return;
-
-                if (!socket?.connected) return;
-
-                if (
-                    data.sessionId &&
-                    data.sessionId !== window.sessionId &&
-                    data.online === true
-                ) {
-                    window.__forceLogoutTriggered = true;
-
-                    alert("Logged in on another device");
-
-                    try {
-                        socket.disconnect();
-                    } catch (e) { }
-
-                    Store.removeItem("userNumber");
-
-                    setTimeout(() => {
-                        location.reload();
-                    }, 200);
-                }
-            });
+            const userStatusRef = ref(rtdb, "status/" + myNumber);
 
             switchTab("dialpad");
 
-            document.getElementById("userLabel").innerText = "You: " + formatNumber(myNumber);
+            // ONLINE
+            await set(userStatusRef, {
+                online: true,
+                lastSeen: Date.now()
+            });
+
+            // AUTO OFFLINE
+            onDisconnect(userStatusRef).set({
+                online: false,
+                lastSeen: Date.now()
+            });
+
+            // HEARTBEAT
+            setInterval(() => {
+                update(userStatusRef, {
+                    lastSeen: Date.now()
+                });
+            }, 10000);
+
+            document.getElementById("userLabel").innerText = "You: " + formatPhone(myNumber);
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
 
             loadCallHistory(myNumber);
 
             socket = io("https://dialbridge.onrender.com", {
-                query: {
-                    userId: myNumber,
-                    sessionId: window.sessionId
-                },
-                transports: ["websocket", "polling"]
+                query: { userId: myNumber },
+                transports: ["websocket"]
             });
 
-            socket.on("connect", async () => {
-                console.log("✅ SOCKET CONNECTED:", socket.id);
-
-                await update(ref(rtdb, "status/" + myNumber), {
-                    online: true,
-                    socketId: socket.id,
-                    sessionId: window.sessionId,
-                    lastSeen: Date.now()
-                });
+            socket.on("connect", () => {
+                socket.emit("register", myNumber);
             });
 
             setupSocketEvents();
@@ -1227,7 +1184,7 @@
                     const isOutgoing = data.caller === userNumber;
 
                     historyHTML.push({
-                        num: normalize(isOutgoing ? data.receiver : data.caller),
+                        num: isOutgoing ? data.receiver : data.caller,
                         dur: data.duration,
                         type: isOutgoing ? "out" : "in",
                         ts: data.timestamp?.toDate()
@@ -1248,7 +1205,7 @@
 
                 list.innerHTML = historyHTML.map(item => {
                     const formatted = item.ts
-                        ? new Date(item.ts).toLocaleTimeString()
+                        ? new Date(item.ts).toLocaleString()
                         : "Just now";
 
                     return `
@@ -1257,7 +1214,7 @@
             ${item.type === "out" ? "↗" : "↙"}
         </div>
         <div class="history-info">
-            <div class="history-num">${formatNumber(item.num)}</div>
+            <div class="history-num">${formatPhone(item.num)}</div>
             <div class="history-dur">
                 ${item.dur}s • ${formatted}
             </div>
@@ -1269,34 +1226,30 @@
         }
 
         window.dialFromHistory = (num) => {
-            number = normalize(num).slice(-10);
+            number = num.replace("+91", "");
             updateDisplay();
 
+            // switch to dialpad automatically
             switchTab("dialpad");
 
+            // also update radio button UI
             document.querySelector("input[value='dialpad']").checked = true;
         };
 
         /* ---- SOCKET EVENTS ---- */
         function setupSocketEvents() {
-            socket.onAny((event, ...args) => {
-                console.log("📥 CLIENT RECEIVED EVENT:", event, args);
-            });
-
             socket.on("incoming-call", (data) => {
+
+                // 🚫 reject if busy
                 if (CALL_STATE !== "IDLE") {
-                    socket.emit("call-rejected", {
-                        to: data.from,
-                        reason: "busy"
-                    });
+                    socket.emit("call-rejected", { to: data.from });
                     return;
                 }
+
                 CALL_STATE = "RINGING";
 
-                caller = normalize(data.from);
-                currentCallUser = normalize(data.from);
-
-                document.getElementById('incomingNum').innerText = formatNumber(currentCallUser);
+                caller = data.from;
+                document.getElementById('incomingNum').innerText = formatPhone(data.from);
                 document.getElementById('incoming').style.display = 'block';
             });
 
@@ -1351,21 +1304,17 @@
             });
 
             socket.on("reconnect", () => {
+                console.log("Reconnected");
+
                 socket.emit("register", myNumber);
 
+                // Reset call if broken
                 if (CALL_STATE !== "IDLE") {
                     cleanupCall();
                     stopTimer();
                     resetUI();
                     CALL_STATE = "IDLE";
                 }
-            });
-
-            socket.on("force-logout", () => {
-                Store.removeItem("userNumber");
-                alert("Logged in on another device");
-                socket.disconnect();
-                location.reload();
             });
         }
 
@@ -1409,7 +1358,7 @@
         }
 
         window.press = (n) => {
-            if (number.length < 10) number += n;
+            number += n;
             updateDisplay();
         };
 
@@ -1435,22 +1384,26 @@
         // END HOLD
         deleteBtn.addEventListener("pointerup", () => {
             clearTimeout(holdTimer);
+
+            // If NOT long press → delete one digit
+            if (!isHolding) {
+                if (number.length > 0) {
+                    number = number.slice(0, -1);
+                    updateDisplay();
+                }
+            }
+        });
+
+        // Cancel if pointer leaves button
+        deleteBtn.addEventListener("pointerleave", () => {
+            clearTimeout(holdTimer);
         });
 
         /* ---- CALL FLOW ---- */
         window.makeCall = async () => {
-            if (!socket?.connected) {
-                alert("Connecting to server...");
-                return;
-            }
+            if (!number) return;
 
-            if (!number || CALL_STATE !== "IDLE") return;
-
-            const target = normalize(number);
-            if (!target) {
-                alert("Invalid number");
-                return;
-            }
+            const target = "+91" + number;
 
             try {
                 const statusSnap = await get(ref(rtdb, "status/" + target));
@@ -1470,14 +1423,13 @@
                 currentCallUser = target;
 
                 CALL_STATE = "CALLING";
-                showCallScreen("Calling...");
 
                 socket.emit("call-user", {
                     to: currentCallUser,
                     from: myNumber
                 });
 
-                // showCallScreen("Calling...");
+                showCallScreen("Calling...");
 
             } catch (err) {
                 console.error(err);
@@ -1486,47 +1438,33 @@
         };
 
         window.acceptCall = async () => {
-            document.getElementById('incoming').style.display = 'none';
-
             CALL_STATE = "IN_CALL";
+
             currentCallUser = caller;
 
-            showCallScreen("Connecting...");
             socket.emit("call-accepted", {
-                to: currentCallUser
-                // from: normalize(myNumber)
+                to: currentCallUser,
+                from: myNumber
             });
 
-            // document.getElementById('incoming').style.display = 'none';
+            document.getElementById('incoming').style.display = 'none';
 
-            // showCallScreen("Connecting...");
+            showCallScreen("Connecting...");
             await startWebRTC(false);
         };
 
         window.rejectCall = () => {
-            if (!caller) return;
-
-            document.getElementById('incoming').style.display = 'none';
-
-            CALL_STATE = "IDLE";
-
             socket.emit("call-rejected", {
-                to: caller
-                // from: normalize(myNumber)
+                to: caller,
+                from: myNumber
             });
 
-            caller = null;
-            currentCallUser = null;
-
-            // document.getElementById('incoming').style.display = 'none';
-            // CALL_STATE = "IDLE";
+            document.getElementById('incoming').style.display = 'none';
+            CALL_STATE = "IDLE";
         };
 
         window.endCall = async () => {
-            socket.emit("end-call", {
-                to: normalize(currentCallUser),
-                from: normalize(myNumber)
-            });
+            socket.emit("end-call", { to: currentCallUser, from: myNumber });
 
             const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
 
@@ -1568,7 +1506,7 @@
                 peer.onicecandidate = (event) => {
                     if (event.candidate) {
                         socket.emit("ice-candidate", {
-                            to: normalize(currentCallUser),
+                            to: currentCallUser,
                             candidate: event.candidate
                         });
                     }
@@ -1594,7 +1532,7 @@
                     await peer.setLocalDescription(offer);
 
                     socket.emit("offer", {
-                        to: normalize(currentCallUser),
+                        to: currentCallUser,
                         offer
                     });
                 }
@@ -1605,6 +1543,7 @@
         }
 
         async function handleOffer(offer) {
+
             if (!peer) await startWebRTC(false);
 
             await peer.setRemoteDescription(new RTCSessionDescription(offer));
@@ -1652,7 +1591,7 @@
         function showCallScreen(status) {
             UI.showCallScreen();
             document.getElementById('status').innerText = status;
-            document.getElementById('callUser').innerText = formatNumber(currentCallUser);
+            document.getElementById('callUser').innerText = formatPhone(currentCallUser);
 
             const letter = (currentCallUser || "?")[0].toUpperCase();
             document.getElementById('callAvatar').innerText =
@@ -1670,7 +1609,7 @@
             await addDoc(collection(db, "call_logs"), {
                 caller,
                 receiver,
-                participants: [normalize(caller), normalize(receiver)],
+                participants: [caller, receiver],
                 duration,
                 timestamp: serverTimestamp()
             });
