@@ -235,12 +235,14 @@
         }
 
         .tab-switch {
+            margin: 0;
             display: flex;
             justify-content: center;
             gap: 50px;
             padding: 20px;
             font-size: 18px;
             font-weight: 700;
+            border-bottom: 1px solid var(--color-border);
         }
 
         .tab-switch label {
@@ -266,14 +268,14 @@
             overflow-y: auto;
             background: var(--color-surface);
             border-top: 1px solid var(--color-border);
-            padding: var(--space-4) var(--space-4) var(--space-3);
+            padding: 0;
             transition: transform 0.25s ease;
         }
 
         .history-list {
             flex: 1;
             overflow-y: auto;
-            padding: var(--space-2) var(--space-4);
+            padding: 8px 16px 16px;
         }
 
         .history::-webkit-scrollbar {
@@ -288,13 +290,14 @@
         .history-header {
             position: sticky;
             top: 0;
-            z-index: 5;
+            z-index: 10;
             font-size: var(--text-sm);
             font-weight: 700;
             color: var(--color-text-muted);
             letter-spacing: 0.07em;
             text-transform: uppercase;
-            padding: var(--space-3) var(--space-4);
+            padding: 12px 16px;
+            margin: 0;
             background: var(--color-surface);
             border-bottom: 1px solid var(--color-border);
             flex-shrink: 0;
@@ -885,10 +888,19 @@
                     <div>
                         <div class="call-name" id="callUser"></div>
                         <div class="call-status" id="status">Ringing...</div>
+                        <div id="remoteMuteIndicator" style="
+    margin-top:8px;
+    font-size:13px;
+    font-weight:600;
+    color:#ef4444;
+    display:none;
+">
+                            Microphone muted
+                        </div>
                     </div>
                     <div class="call-actions">
                         <div class="action-btn">
-                            <button class="action-circle mute" aria-label="Mute">
+                            <button id="muteBtn" class="action-circle mute" onclick="toggleMute()" aria-label="Mute">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round"
                                     style="color:var(--color-text-muted)">
@@ -961,6 +973,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const rtdb = getDatabase(app);
+        const getCallStateRef = (num) => ref(rtdb, "call_state/" + num);
+
         const Store = {
             setItem: (k, v) => localStorage.setItem(k, v),
             getItem: (k) => localStorage.getItem(k),
@@ -1029,6 +1043,7 @@
         let socket, myNumber, currentCallUser, SESSION_ID = crypto.randomUUID(), number = "";
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
+        let isMuted = false;
         let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
 
         const deleteBtn = document.getElementById("deleteBtn");
@@ -1200,7 +1215,7 @@
 
             loadCallHistory(myNumber);
 
-            socket = io("https://dialbridge.onrender.com", {
+            socket = io("http://localhost:5000", {
                 query: { userId: myNumber },
                 transports: ["websocket"]
             });
@@ -1320,6 +1335,14 @@
                 await handleAnswer(answer);
             });
 
+            socket.on("remote-mute-state", (data) => {
+                const indicator = document.getElementById("remoteMuteIndicator");
+
+                if (!indicator) return;
+
+                indicator.style.display = data.muted ? "block" : "none";
+            });
+
             socket.on("ice-candidate", async (candidate) => {
                 const ice = new RTCIceCandidate(candidate);
 
@@ -1428,19 +1451,6 @@
         // END HOLD
         deleteBtn.addEventListener("pointerup", () => {
             clearTimeout(holdTimer);
-
-            // If NOT long press → delete one digit
-            if (!isHolding) {
-                if (number.length > 0) {
-                    number = number.slice(0, -1);
-                    updateDisplay();
-                }
-            }
-        });
-
-        // Cancel if pointer leaves button
-        deleteBtn.addEventListener("pointerleave", () => {
-            clearTimeout(holdTimer);
         });
 
         /* ---- CALL FLOW ---- */
@@ -1521,6 +1531,32 @@
             resetUI();
 
             CALL_STATE = "IDLE";
+        };
+
+        window.toggleMute = () => {
+            if (!localStream) return;
+
+            const audioTrack = localStream.getAudioTracks()[0];
+
+            if (!audioTrack) return;
+
+            isMuted = !isMuted;
+            audioTrack.enabled = !isMuted;
+            const muteBtn = document.getElementById("muteBtn");
+
+            if (isMuted) {
+                muteBtn.style.background = "#ef4444";
+                document.querySelector("#muteBtn svg").style.color = "white";
+            } else {
+                muteBtn.style.background = "";
+                document.querySelector("#muteBtn svg").style.color = "var(--color-text-muted)";
+            }
+
+            // SEND MUTE STATE
+            socket.emit("mute-state-changed", {
+                to: currentCallUser,
+                muted: isMuted
+            });
         };
 
         /* ---- WEBRTC ---- */
@@ -1629,6 +1665,19 @@
 
             currentCallUser = null;
             caller = null;
+
+            isMuted = false;
+            const muteBtn = document.getElementById("muteBtn");
+            const remoteIndicator = document.getElementById("remoteMuteIndicator");
+
+            if (muteBtn) {
+                muteBtn.style.background = "";
+                document.querySelector("#muteBtn svg").style.color = "var(--color-text-muted)";
+            }
+
+            if (remoteIndicator) {
+                remoteIndicator.style.display = "none";
+            }
         }
 
         /* ---- UI ---- */

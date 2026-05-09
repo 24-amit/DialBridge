@@ -58,6 +58,16 @@ io.on("connection", (socket) => {
     io.to(caller).emit("answer", answer);
   });
 
+  socket.on("mute-state-changed", (data) => {
+    const targetSocket = users[data.to];
+
+    if (targetSocket) {
+      io.to(targetSocket).emit("remote-mute-state", {
+        muted: data.muted,
+      });
+    }
+  });
+
   socket.on("ice-candidate", ({ to, candidate }) => {
     const receiver = onlineUsers.get(to);
     io.to(receiver).emit("ice-candidate", candidate);
