@@ -944,7 +944,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, addDoc, query, where, doc, getDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getDatabase, ref, set, onDisconnect, get, update }
+        import { getDatabase, ref, set, onDisconnect, get, update, onValue }
             from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         const firebaseConfig = {
@@ -959,7 +959,6 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        // const auth = getAuth(app);
         const db = getFirestore(app);
         const rtdb = getDatabase(app);
         const Store = {
@@ -983,6 +982,19 @@
             setTimeout(() => {
                 phoneInput.focus();
             }, 300);
+
+            // 🔥 ENTER KEY SUPPORT
+            document.getElementById("phone").addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    sendOTP();
+                }
+            });
+
+            document.getElementById("otp").addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    verifyOTP();
+                }
+            });
         };
 
         window.logout = async () => {
@@ -1014,7 +1026,7 @@
             }
         };
 
-        let socket, myNumber, currentCallUser, number = "";
+        let socket, myNumber, currentCallUser, SESSION_ID = crypto.randomUUID(), number = "";
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
         let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
@@ -1128,6 +1140,8 @@
             myNumber = myNumber || Store.getItem("userNumber");
 
             const userStatusRef = ref(rtdb, "status/" + myNumber);
+            // For multi support system
+            const sessionRef = ref(rtdb, "sessions/" + myNumber);
 
             switchTab("dialpad");
 
@@ -1135,6 +1149,36 @@
             await set(userStatusRef, {
                 online: true,
                 lastSeen: Date.now()
+            });
+
+            // For multi support system
+            await set(sessionRef, {
+                sessionId: SESSION_ID,
+                updatedAt: Date.now()
+            });
+
+            // For multi support system
+            onValue(sessionRef, (snap) => {
+                const data = snap.val();
+
+                if (!data) return;
+
+                // another device logged in
+                if (data.sessionId !== SESSION_ID) {
+
+                    alert("Your account opened on another device");
+
+                    cleanupCall();
+                    stopTimer();
+
+                    Store.removeItem("userNumber");
+
+                    if (socket) {
+                        socket.disconnect();
+                    }
+
+                    location.reload();
+                }
             });
 
             // AUTO OFFLINE
@@ -1150,7 +1194,7 @@
                 });
             }, 10000);
 
-            document.getElementById("userLabel").innerText = "You: " + formatPhone(myNumber);
+            document.getElementById("userLabel").innerText = "You: +91 " + formatPhone(myNumber);
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
 
@@ -1214,7 +1258,7 @@
             ${item.type === "out" ? "↗" : "↙"}
         </div>
         <div class="history-info">
-            <div class="history-num">${formatPhone(item.num)}</div>
+            <div class="history-num">+91 ${formatPhone(item.num)}</div>
             <div class="history-dur">
                 ${item.dur}s • ${formatted}
             </div>
@@ -1249,7 +1293,7 @@
                 CALL_STATE = "RINGING";
 
                 caller = data.from;
-                document.getElementById('incomingNum').innerText = formatPhone(data.from);
+                document.getElementById('incomingNum').innerText = "+91 " + formatPhone(data.from);
                 document.getElementById('incoming').style.display = 'block';
             });
 
@@ -1591,7 +1635,7 @@
         function showCallScreen(status) {
             UI.showCallScreen();
             document.getElementById('status').innerText = status;
-            document.getElementById('callUser').innerText = formatPhone(currentCallUser);
+            document.getElementById('callUser').innerText = "+91 " + formatPhone(currentCallUser);
 
             const letter = (currentCallUser || "?")[0].toUpperCase();
             document.getElementById('callAvatar').innerText =
