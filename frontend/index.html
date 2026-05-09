@@ -828,30 +828,30 @@
 
                         <!-- Keypad -->
                         <div class="keypad">
-                            <div class="key" onclick="press('1')"><span class="key-digit">1</span><span
-                                    class="key-alpha">&nbsp;</span></div>
-                            <div class="key" onclick="press('2')"><span class="key-digit">2</span><span
-                                    class="key-alpha">ABC</span></div>
-                            <div class="key" onclick="press('3')"><span class="key-digit">3</span><span
-                                    class="key-alpha">DEF</span></div>
-                            <div class="key" onclick="press('4')"><span class="key-digit">4</span><span
-                                    class="key-alpha">GHI</span></div>
-                            <div class="key" onclick="press('5')"><span class="key-digit">5</span><span
-                                    class="key-alpha">JKL</span></div>
-                            <div class="key" onclick="press('6')"><span class="key-digit">6</span><span
-                                    class="key-alpha">MNO</span></div>
-                            <div class="key" onclick="press('7')"><span class="key-digit">7</span><span
-                                    class="key-alpha">PQRS</span></div>
-                            <div class="key" onclick="press('8')"><span class="key-digit">8</span><span
-                                    class="key-alpha">TUV</span></div>
-                            <div class="key" onclick="press('9')"><span class="key-digit">9</span><span
-                                    class="key-alpha">WXYZ</span></div>
-                            <div class="key" onclick="press('*')"><span class="key-digit">*</span><span
-                                    class="key-alpha">&nbsp;</span></div>
-                            <div class="key" onclick="press('0')"><span class="key-digit">0</span><span
-                                    class="key-alpha">+</span></div>
-                            <div class="key" onclick="press('#')"><span class="key-digit">#</span><span
-                                    class="key-alpha">&nbsp;</span></div>
+                            <div class="key" ontouchstart="press('1')" onclick="press('1')"><span
+                                    class="key-digit">1</span><span class="key-alpha">&nbsp;</span></div>
+                            <div class="key" ontouchstart="press('2')" onclick="press('2')"><span
+                                    class="key-digit">2</span><span class="key-alpha">ABC</span></div>
+                            <div class="key" ontouchstart="press('3')" onclick="press('3')"><span
+                                    class="key-digit">3</span><span class="key-alpha">DEF</span></div>
+                            <div class="key" ontouchstart="press('4')" onclick="press('4')"><span
+                                    class="key-digit">4</span><span class="key-alpha">GHI</span></div>
+                            <div class="key" ontouchstart="press('5')" onclick="press('5')"><span
+                                    class="key-digit">5</span><span class="key-alpha">JKL</span></div>
+                            <div class="key" ontouchstart="press('6')" onclick="press('6')"><span
+                                    class="key-digit">6</span><span class="key-alpha">MNO</span></div>
+                            <div class="key" ontouchstart="press('7')" onclick="press('7')"><span
+                                    class="key-digit">7</span><span class="key-alpha">PQRS</span></div>
+                            <div class="key" ontouchstart="press('8')" onclick="press('8')"><span
+                                    class="key-digit">8</span><span class="key-alpha">TUV</span></div>
+                            <div class="key" ontouchstart="press('9')" onclick="press('9')"><span
+                                    class="key-digit">9</span><span class="key-alpha">WXYZ</span></div>
+                            <div class="key" ontouchstart="press('*')" onclick="press('*')"><span
+                                    class="key-digit">*</span><span class="key-alpha">&nbsp;</span></div>
+                            <div class="key" ontouchstart="press('0')" onclick="press('0')"><span
+                                    class="key-digit">0</span><span class="key-alpha">+</span></div>
+                            <div class="key" ontouchstart="press('#')" onclick="press('#')"><span
+                                    class="key-digit">#</span><span class="key-alpha">&nbsp;</span></div>
                         </div>
 
                         <!-- Call + Delete -->
@@ -888,10 +888,27 @@
                     <div>
                         <div class="call-name" id="callUser"></div>
                         <div class="call-status" id="status">Ringing...</div>
+                        <div id="remoteMuteIndicator" style="
+    margin-top:8px;
+    font-size:13px;
+    font-weight:600;
+    color:#ef4444;
+    display:none;
+">
+                            Microphone muted
+                        </div>
+
+
+
+
+
+
+
+
                     </div>
                     <div class="call-actions">
                         <div class="action-btn">
-                            <button class="action-circle mute" aria-label="Mute">
+                            <button id="muteBtn" class="action-circle mute" onclick="toggleMute()" aria-label="Mute">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round"
                                     style="color:var(--color-text-muted)">
@@ -1100,7 +1117,7 @@
             message.innerText = "OTP sent";
             message.className = "success";
 
-            // ✅ Auto-focus OTP
+
             setTimeout(() => {
                 const otpInput = document.getElementById("otp");
                 otpInput.focus();
@@ -1125,7 +1142,7 @@
 
                     setTimeout(() => {
                         startApp();
-                    }, 500);
+                    }, 200);
 
                 } else {
                     throw new Error("Invalid OTP");
@@ -1194,11 +1211,13 @@
                 update(userStatusRef, {
                     lastSeen: Date.now()
                 });
-            }, 10000);
+            }, 1000);
 
             document.getElementById("userLabel").innerText = "You: +91 " + formatPhone(myNumber);
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
+
+            enableDialpadKeyboard();
 
             loadCallHistory(myNumber);
 
@@ -1311,7 +1330,7 @@
 
             socket.on("call-rejected", () => {
                 document.getElementById('status').innerText = "Call Rejected";
-                setTimeout(resetUI, 1500);
+                setTimeout(resetUI, 500);
             });
 
             socket.on("offer", async (offer) => {
@@ -1349,7 +1368,7 @@
                     cleanupCall();
                     stopTimer();
                     resetUI();
-                }, 1000);
+                }, 500);
             });
 
             socket.on("user-offline", () => {
@@ -1412,6 +1431,8 @@
         }
 
         window.press = (n) => {
+            if (number.length >= 10) return;
+
             number += n;
             updateDisplay();
         };
@@ -1421,6 +1442,176 @@
             number = number.slice(0, -1);
             updateDisplay();
         };
+
+        /* =========================
+            DIALPAD KEYBOARD CONTROL
+        ========================= */
+
+        let backspaceTimer = null;
+
+        /* AUTO FOCUS DIALPAD */
+        function focusDialpad() {
+            document.body.focus();
+        }
+
+        /* AFTER LOGIN AUTO FOCUS */
+        function enableDialpadKeyboard() {
+
+            // make body focusable
+            document.body.setAttribute("tabindex", "0");
+
+            // autofocus
+            setTimeout(() => {
+                focusDialpad();
+            }, 300);
+
+            // click anywhere = refocus
+            document.addEventListener("click", () => {
+                focusDialpad();
+            });
+
+            // KEYDOWN
+            document.addEventListener("keydown", (e) => {
+                // prevent repeat spam
+                if (e.repeat && e.key !== "Backspace") return;
+
+                // DIGITS
+                if (/^[0-9]$/.test(e.key)) {
+                    press(e.key);
+                    return;
+                }
+
+                // STAR
+                if (e.key === "*") {
+                    press("*");
+                    return;
+                }
+
+                // HASH
+                if (e.key === "#") {
+                    press("#");
+                    return;
+                }
+
+                // ENTER => CALL
+                if (e.key === "Enter") {
+                    e.preventDefault();
+
+                    if (number.length > 0) {
+                        makeCall();
+                    }
+                    return;
+                }
+
+                // BACKSPACE
+                if (e.key === "Backspace") {
+                    e.preventDefault();
+
+                    // remove single immediately
+                    removeNumber();
+
+                    // clear old timer
+                    clearTimeout(backspaceTimer);
+
+                    // HOLD DETECTION
+                    backspaceTimer = setTimeout(() => {
+                        number = "";
+                        updateDisplay();
+                    }, 1000);
+                }
+            });
+
+            // KEYUP
+            document.addEventListener("keyup", (e) => {
+                if (e.key === "Backspace") {
+                    clearTimeout(backspaceHoldTimer);
+                }
+            });
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // START HOLD
         deleteBtn.addEventListener("pointerdown", (e) => {
@@ -1442,7 +1633,13 @@
 
         /* ---- CALL FLOW ---- */
         window.makeCall = async () => {
-            if (!number) return;
+            if (number.length !== 10) {
+                alert("Enter valid 10-digit number");
+                return;
+            }
+
+
+
 
             const target = "+91" + number;
 
