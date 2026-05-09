@@ -889,10 +889,13 @@
                         <div class="call-name" id="callUser"></div>
                         <div class="call-status" id="status">Ringing...</div>
                         <div id="remoteMuteIndicator" style="
-    margin-top:8px;
+    margin-top:10px;
+    padding:8px 12px;
+    background:#ef4444;
+    color:white;
+    border-radius:10px;
     font-size:13px;
     font-weight:600;
-    color:#ef4444;
     display:none;
 ">
                             Microphone muted
@@ -930,7 +933,8 @@
                             <span class="action-label">End</span>
                         </div>
                         <div class="action-btn">
-                            <button class="action-circle speaker" aria-label="Speaker">
+                            <button id="speakerBtn" class="action-circle speaker" onclick="toggleSpeaker()"
+                                aria-label="Speaker">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round"
                                     style="color:var(--color-text-muted)">
@@ -955,7 +959,7 @@
             </div>
         </div>
 
-        <audio id="remoteAudio"></audio>
+        <audio id="remoteAudio" autoplay playsinline></audio>
     </div>
 
     <!-- ======== SCRIPTS ======== -->
@@ -1052,6 +1056,7 @@
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
         let isMuted = false;
+        let isSpeakerOn = false;
         let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
 
         const deleteBtn = document.getElementById("deleteBtn");
@@ -1346,7 +1351,12 @@
 
                 if (!indicator) return;
 
-                indicator.style.display = data.muted ? "block" : "none";
+                if (data.muted) {
+                    indicator.innerText = "Microphone muted";
+                    indicator.style.display = "block";
+                } else {
+                    indicator.style.display = "none";
+                }
             });
 
             socket.on("ice-candidate", async (candidate) => {
@@ -1446,15 +1456,14 @@
         /* =========================
             DIALPAD KEYBOARD CONTROL
         ========================= */
-
-        let backspaceTimer = null;
+        let backspaceStart = 0;
 
         /* AUTO FOCUS DIALPAD */
         function focusDialpad() {
             document.body.focus();
         }
 
-        /* AFTER LOGIN AUTO FOCUS */
+        /* ENABLE KEYBOARD */
         function enableDialpadKeyboard() {
 
             // make body focusable
@@ -1472,7 +1481,8 @@
 
             // KEYDOWN
             document.addEventListener("keydown", (e) => {
-                // prevent repeat spam
+
+                // prevent repeated number spam
                 if (e.repeat && e.key !== "Backspace") return;
 
                 // DIGITS
@@ -1495,123 +1505,48 @@
 
                 // ENTER => CALL
                 if (e.key === "Enter") {
+
                     e.preventDefault();
 
-                    if (number.length > 0) {
+                    if (number.length === 10) {
                         makeCall();
+                    } else {
+                        alert("Enter valid 10-digit number");
                     }
+
                     return;
                 }
 
                 // BACKSPACE
                 if (e.key === "Backspace") {
+
                     e.preventDefault();
 
-                    // remove single immediately
+                    // prevent repeat backspace spam
+                    if (e.repeat) return;
+
+                    // start hold timer
+                    backspaceStart = Date.now();
+
+                    // remove one digit immediately
                     removeNumber();
-
-                    // clear old timer
-                    clearTimeout(backspaceTimer);
-
-                    // HOLD DETECTION
-                    backspaceTimer = setTimeout(() => {
-                        number = "";
-                        updateDisplay();
-                    }, 1000);
                 }
             });
 
             // KEYUP
             document.addEventListener("keyup", (e) => {
-                if (e.key === "Backspace") {
-                    clearTimeout(backspaceHoldTimer);
+
+                if (e.key !== "Backspace") return;
+
+                const holdDuration = Date.now() - backspaceStart;
+
+                // HOLD > 500ms => clear all
+                if (holdDuration >= 500) {
+                    number = "";
+                    updateDisplay();
                 }
             });
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         // START HOLD
         deleteBtn.addEventListener("pointerdown", (e) => {
@@ -1637,9 +1572,6 @@
                 alert("Enter valid 10-digit number");
                 return;
             }
-
-
-
 
             const target = "+91" + number;
 
@@ -1741,6 +1673,43 @@
                 to: currentCallUser,
                 muted: isMuted
             });
+        };
+
+        window.toggleSpeaker = async () => {
+            const audio = document.getElementById("remoteAudio");
+
+            if (!audio) return;
+
+            isSpeakerOn = !isSpeakerOn;
+            /*
+                MOBILE SUPPORT
+                ----------------
+                setSinkId works mainly on Chrome desktop.
+                Most mobile browsers DO NOT allow changing output device.
+            */
+            try {
+                // DESKTOP / CHROME
+                if (typeof audio.setSinkId === "function") {
+                    if (isSpeakerOn) {
+                        // speaker device
+                        await audio.setSinkId("default");
+                    } else {
+                        // earpiece/headphone/default route
+                        await audio.setSinkId("communications");
+                    }
+                }
+            } catch (err) {
+                console.log("Speaker switch not supported:", err);
+            }
+            const btn = document.getElementById("speakerBtn");
+
+            if (isSpeakerOn) {
+                btn.style.background = "#22c55e";
+                btn.querySelector("svg").style.color = "white";
+            } else {
+                btn.style.background = "";
+                btn.querySelector("svg").style.color = "var(--color-text-muted)";
+            };
         };
 
         /* ---- WEBRTC ---- */
@@ -1873,6 +1842,8 @@
             const letter = (currentCallUser || "?")[0].toUpperCase();
             document.getElementById('callAvatar').innerText =
                 /\+\d/.test(letter) ? "📞" : letter;
+
+            document.getElementById("remoteMuteIndicator").style.display = "none";
         }
 
         function resetUI() {
