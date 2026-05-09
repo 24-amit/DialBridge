@@ -888,19 +888,10 @@
                     <div>
                         <div class="call-name" id="callUser"></div>
                         <div class="call-status" id="status">Ringing...</div>
-                        <div id="remoteMuteIndicator" style="
-    margin-top:8px;
-    font-size:13px;
-    font-weight:600;
-    color:#ef4444;
-    display:none;
-">
-                            Microphone muted
-                        </div>
                     </div>
                     <div class="call-actions">
                         <div class="action-btn">
-                            <button id="muteBtn" class="action-circle mute" onclick="toggleMute()" aria-label="Mute">
+                            <button class="action-circle mute" aria-label="Mute">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round"
                                     style="color:var(--color-text-muted)">
@@ -1043,7 +1034,6 @@
         let socket, myNumber, currentCallUser, SESSION_ID = crypto.randomUUID(), number = "";
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
-        let isMuted = false;
         let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
 
         const deleteBtn = document.getElementById("deleteBtn");
@@ -1215,7 +1205,7 @@
 
             loadCallHistory(myNumber);
 
-            socket = io("http://localhost:5000", {
+            socket = io("https://dialbridge.onrender.com", {
                 query: { userId: myNumber },
                 transports: ["websocket"]
             });
@@ -1333,14 +1323,6 @@
 
             socket.on("answer", async (answer) => {
                 await handleAnswer(answer);
-            });
-
-            socket.on("remote-mute-state", (data) => {
-                const indicator = document.getElementById("remoteMuteIndicator");
-
-                if (!indicator) return;
-
-                indicator.style.display = data.muted ? "block" : "none";
             });
 
             socket.on("ice-candidate", async (candidate) => {
@@ -1533,32 +1515,6 @@
             CALL_STATE = "IDLE";
         };
 
-        window.toggleMute = () => {
-            if (!localStream) return;
-
-            const audioTrack = localStream.getAudioTracks()[0];
-
-            if (!audioTrack) return;
-
-            isMuted = !isMuted;
-            audioTrack.enabled = !isMuted;
-            const muteBtn = document.getElementById("muteBtn");
-
-            if (isMuted) {
-                muteBtn.style.background = "#ef4444";
-                document.querySelector("#muteBtn svg").style.color = "white";
-            } else {
-                muteBtn.style.background = "";
-                document.querySelector("#muteBtn svg").style.color = "var(--color-text-muted)";
-            }
-
-            // SEND MUTE STATE
-            socket.emit("mute-state-changed", {
-                to: currentCallUser,
-                muted: isMuted
-            });
-        };
-
         /* ---- WEBRTC ---- */
         async function startWebRTC(isCaller) {
             if (peer) cleanupCall();
@@ -1665,19 +1621,6 @@
 
             currentCallUser = null;
             caller = null;
-
-            isMuted = false;
-            const muteBtn = document.getElementById("muteBtn");
-            const remoteIndicator = document.getElementById("remoteMuteIndicator");
-
-            if (muteBtn) {
-                muteBtn.style.background = "";
-                document.querySelector("#muteBtn svg").style.color = "var(--color-text-muted)";
-            }
-
-            if (remoteIndicator) {
-                remoteIndicator.style.display = "none";
-            }
         }
 
         /* ---- UI ---- */
