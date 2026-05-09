@@ -578,9 +578,27 @@
             width: 100%;
         }
 
+        .call-avatar-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-ring {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+
+            border: 2px solid rgba(255, 255, 255, 0.15);
+
+            animation: pulseRing 2.8s infinite;
+        }
+
         .call-avatar {
-            width: 140px;
-            height: 140px;
+            width: 145px;
+            height: 145px;
             border-radius: 50%;
             position: relative;
             overflow: hidden;
@@ -589,27 +607,48 @@
             align-items: center;
             justify-content: center;
 
-            margin: auto;
-
-            background: linear-gradient(135deg, #7c3aed, #06b6d4);
+            background:
+                linear-gradient(135deg,
+                    #7c3aed,
+                    #06b6d4);
 
             box-shadow:
-                0 0 40px rgba(124, 58, 237, 0.4),
-                inset 0 0 30px rgba(255, 255, 255, 0.08);
+                0 10px 40px rgba(124, 58, 237, 0.35),
+                inset 0 1px 1px rgba(255, 255, 255, 0.2);
 
-            animation: avatarFloat 4s ease-in-out infinite;
+            animation:
+                avatarFloat 4s ease-in-out infinite;
         }
 
         .avatar-glow {
             position: absolute;
-            width: 200%;
-            height: 200%;
+            inset: -40%;
+
             background:
                 radial-gradient(circle,
                     rgba(255, 255, 255, 0.18),
-                    transparent 60%);
+                    transparent 65%);
 
-            animation: rotateGlow 10s linear infinite;
+            animation: rotateGlow 8s linear infinite;
+        }
+
+        .avatar-shine {
+            position: absolute;
+            top: -30%;
+            left: -60%;
+
+            width: 60%;
+            height: 200%;
+
+            background:
+                linear-gradient(to right,
+                    transparent,
+                    rgba(255, 255, 255, 0.16),
+                    transparent);
+
+            transform: rotate(25deg);
+
+            animation: shineMove 5s linear infinite;
         }
 
         .avatar-pattern {
@@ -617,25 +656,20 @@
             inset: 0;
 
             background-image:
-                radial-gradient(rgba(255, 255, 255, 0.08) 2px, transparent 2px);
+                radial-gradient(rgba(255, 255, 255, 0.08) 2px,
+                    transparent 2px);
 
             background-size: 18px 18px;
         }
 
         .avatar-icon {
-            position: absolute;
-            font-size: 28px;
-            opacity: 0.15;
-        }
-
-        .avatar-letter {
             position: relative;
-            font-size: 54px;
-            font-weight: 700;
-            color: white;
             z-index: 2;
 
-            text-transform: uppercase;
+            font-size: 58px;
+
+            filter:
+                drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
         }
 
         @keyframes avatarFloat {
@@ -646,17 +680,47 @@
             }
 
             50% {
-                transform: translateY(-8px);
+                transform: translateY(-10px);
             }
         }
 
         @keyframes rotateGlow {
+
             from {
                 transform: rotate(0deg);
             }
 
             to {
                 transform: rotate(360deg);
+            }
+        }
+
+        @keyframes shineMove {
+
+            from {
+                left: -60%;
+            }
+
+            to {
+                left: 140%;
+            }
+        }
+
+        @keyframes pulseRing {
+
+            0% {
+                transform: scale(0.95);
+                opacity: 0.7;
+            }
+
+            70% {
+                transform: scale(1.08);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1.08);
+                opacity: 0;
             }
         }
 
@@ -950,17 +1014,15 @@
 
                 <!-- CALL SCREEN -->
                 <div id="callScreen" class="card call-screen-inner">
-                    <div class="call-avatar" id="callAvatar">
-                        <div class="avatar-glow"></div>
-
-                        <div class="avatar-pattern"></div>
-
-                        <div class="avatar-icon">
-                            📞
-                        </div>
-
-                        <div class="avatar-letter" id="avatarLetter">
-                            A
+                    <div class="call-avatar-wrap">
+                        <div class="avatar-ring"></div>
+                        <div class="call-avatar" id="callAvatar">
+                            <div class="avatar-glow"></div>
+                            <div class="avatar-shine"></div>
+                            <div class="avatar-pattern"></div>
+                            <div class="avatar-icon" id="avatarLetter">
+                                📞
+                            </div>
                         </div>
                     </div>
                     <div>
@@ -1133,22 +1195,18 @@
                 ["#ec4899", "#8b5cf6"],
                 ["#f97316", "#ef4444"]
             ];
-
             let hash = 0;
 
             for (let i = 0; i < number.length; i++) {
                 hash += number.charCodeAt(i);
             }
-
             const theme = colors[hash % colors.length];
 
             const avatar = document.getElementById("callAvatar");
 
-            avatar.style.background =
-                `linear-gradient(135deg, ${theme[0]}, ${theme[1]})`;
+            avatar.style.background = `linear-gradient(135deg, ${theme[0]}, ${theme[1]})`;
 
-            document.getElementById("avatarLetter").innerText =
-                number.charAt(0);
+            document.getElementById("avatarLetter").innerText = "📞";
         }
 
         const UI = {
@@ -1288,7 +1346,7 @@
                 update(userStatusRef, {
                     lastSeen: Date.now()
                 });
-            }, 1000);
+            }, 30000);
 
             document.getElementById("userLabel").innerText = "You: +91 " + formatPhone(myNumber);
             document.getElementById('login').style.display = 'none';
@@ -1883,6 +1941,13 @@
             isRemoteSet = false;
             iceQueue = [];
 
+            const audio = document.getElementById("remoteAudio");
+
+            if (audio) {
+                audio.pause();
+                audio.srcObject = null;
+            }
+
             currentCallUser = null;
             caller = null;
 
@@ -1916,8 +1981,31 @@
         }
 
         function resetUI() {
+
             document.getElementById('dialer').style.display = 'flex';
             document.getElementById('callScreen').style.display = 'none';
+
+            document.getElementById('incoming').style.display = 'none';
+
+            document.getElementById('status').innerText = "Ringing...";
+
+            const remoteAudio = document.getElementById("remoteAudio");
+
+            if (remoteAudio) {
+                remoteAudio.pause();
+                remoteAudio.srcObject = null;
+            }
+
+            isSpeakerOn = false;
+
+            const speakerBtn = document.getElementById("speakerBtn");
+
+            if (speakerBtn) {
+                speakerBtn.style.background = "";
+                speakerBtn.querySelector("svg").style.color =
+                    "var(--color-text-muted)";
+            }
+
             number = "";
             updateDisplay();
         }
