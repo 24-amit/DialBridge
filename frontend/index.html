@@ -888,26 +888,9 @@
                     <div>
                         <div class="call-name" id="callUser"></div>
                         <div class="call-status" id="status">Ringing...</div>
-                        <div id="remoteMuteIndicator" style="
-    margin-top:10px;
-    padding:8px 12px;
-    background:#ef4444;
-    color:white;
-    border-radius:10px;
-    font-size:13px;
-    font-weight:600;
-    display:none;
-">
-                            Microphone muted
-                        </div>
-
-
-
-
-
-
-
-
+                        <div id="remoteMuteIndicator"
+                            style="margin-top:10px; padding:8px 12px; background:#ef4444; color:white; border-radius:10px; font-size:13px; font-weight:600; display:none; ">
+                            Microphone muted</div>
                     </div>
                     <div class="call-actions">
                         <div class="action-btn">
@@ -959,7 +942,8 @@
             </div>
         </div>
 
-        <audio id="remoteAudio" autoplay playsinline></audio>
+        <audio id="remoteAudio" autoplay playsinline webkit-playsinline controls style="display:none">
+        </audio>
     </div>
 
     <!-- ======== SCRIPTS ======== -->
@@ -1002,14 +986,13 @@
                 return;
             }
 
-            // Focus phone input (desktop + some Android)
             const phoneInput = document.getElementById("phone");
 
             setTimeout(() => {
                 phoneInput.focus();
             }, 300);
 
-            // 🔥 ENTER KEY SUPPORT
+            // ENTER KEY SUPPORT
             document.getElementById("phone").addEventListener("keydown", (e) => {
                 if (e.key === "Enter") {
                     sendOTP();
@@ -1105,23 +1088,19 @@
             let phone = document.getElementById('phone').value.trim().replace(/\D/g, "");
             const message = document.getElementById('msg');
 
-            // Strict 10-digit validation
             if (phone.length !== 10) {
                 message.innerText = "Enter valid 10-digit phone number";
                 message.className = "error";
                 return;
             }
 
-            // Store temporarily
             Store.setItem("tempPhone", "+91" + phone);
 
-            // UI changes
             document.querySelector('.login-box').classList.add('hidden');
             document.getElementById('otpBox').classList.remove('hidden');
 
             message.innerText = "OTP sent";
             message.className = "success";
-
 
             setTimeout(() => {
                 const otpInput = document.getElementById("otp");
@@ -1139,7 +1118,6 @@
                     if (!myNumber) {
                         throw new Error("Phone number missing");
                     }
-
                     Store.setItem("userNumber", myNumber);
 
                     message.innerText = "Login Successful";
@@ -1148,11 +1126,9 @@
                     setTimeout(() => {
                         startApp();
                     }, 200);
-
                 } else {
                     throw new Error("Invalid OTP");
                 }
-
             } catch (error) {
                 message.innerText = error.message;
                 message.className = "error";
@@ -1164,32 +1140,26 @@
             myNumber = myNumber || Store.getItem("userNumber");
 
             const userStatusRef = ref(rtdb, "status/" + myNumber);
-            // For multi support system
             const sessionRef = ref(rtdb, "sessions/" + myNumber);
 
             switchTab("dialpad");
 
-            // ONLINE
             await set(userStatusRef, {
                 online: true,
                 lastSeen: Date.now()
             });
 
-            // For multi support system
             await set(sessionRef, {
                 sessionId: SESSION_ID,
                 updatedAt: Date.now()
             });
 
-            // For multi support system
             onValue(sessionRef, (snap) => {
                 const data = snap.val();
 
                 if (!data) return;
 
-                // another device logged in
                 if (data.sessionId !== SESSION_ID) {
-
                     alert("Your account opened on another device");
 
                     cleanupCall();
@@ -1200,18 +1170,15 @@
                     if (socket) {
                         socket.disconnect();
                     }
-
                     location.reload();
                 }
             });
 
-            // AUTO OFFLINE
             onDisconnect(userStatusRef).set({
                 online: false,
                 lastSeen: Date.now()
             });
 
-            // HEARTBEAT
             setInterval(() => {
                 update(userStatusRef, {
                     lastSeen: Date.now()
@@ -1244,7 +1211,6 @@
                 collection(db, "call_logs"),
                 where("participants", "array-contains", userNumber)
             );
-
             onSnapshot(q, (snap) => {
                 const historyHTML = [];
 
@@ -1260,7 +1226,6 @@
                         ts: data.timestamp?.toDate()
                     });
                 });
-
                 historyHTML.sort((a, b) => b.ts - a.ts);
 
                 const list = document.getElementById("historyList");
@@ -1299,10 +1264,8 @@
             number = num.replace("+91", "");
             updateDisplay();
 
-            // switch to dialpad automatically
             switchTab("dialpad");
 
-            // also update radio button UI
             document.querySelector("input[value='dialpad']").checked = true;
         };
 
@@ -1310,12 +1273,10 @@
         function setupSocketEvents() {
             socket.on("incoming-call", (data) => {
 
-                // 🚫 reject if busy
                 if (CALL_STATE !== "IDLE") {
                     socket.emit("call-rejected", { to: data.from });
                     return;
                 }
-
                 CALL_STATE = "RINGING";
 
                 caller = data.from;
@@ -1369,16 +1330,22 @@
                 }
             });
 
-            socket.on("call-ended", () => {
-                document.getElementById('status').innerText = "Call Ended";
-
+            socket.on("call-ended", async () => {
                 CALL_STATE = "IDLE";
 
+                cleanupCall();
+                stopTimer();
+                document.getElementById('status').innerText = "Call Ended";
+
+                const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
+
+                if (currentCallUser) {
+                    await saveCallLog(currentCallUser, myNumber, duration);
+                }
+
                 setTimeout(() => {
-                    cleanupCall();
-                    stopTimer();
                     resetUI();
-                }, 500);
+                }, 200);
             });
 
             socket.on("user-offline", () => {
@@ -1391,7 +1358,6 @@
 
                 socket.emit("register", myNumber);
 
-                // Reset call if broken
                 if (CALL_STATE !== "IDLE") {
                     cleanupCall();
                     stopTimer();
@@ -1407,9 +1373,7 @@
 
             callTimerInterval = setInterval(() => {
                 callSeconds++;
-
-                document.getElementById('status').innerText =
-                    formatTime(callSeconds);
+                document.getElementById('status').innerText = formatTime(callSeconds);
             }, 1000);
         }
 
@@ -1453,59 +1417,43 @@
             updateDisplay();
         };
 
-        /* =========================
-            DIALPAD KEYBOARD CONTROL
-        ========================= */
+        // DIALPAD KEYBOARD CONTROL
         let backspaceStart = 0;
 
-        /* AUTO FOCUS DIALPAD */
         function focusDialpad() {
             document.body.focus();
         }
 
-        /* ENABLE KEYBOARD */
         function enableDialpadKeyboard() {
-
-            // make body focusable
             document.body.setAttribute("tabindex", "0");
 
-            // autofocus
             setTimeout(() => {
                 focusDialpad();
             }, 300);
 
-            // click anywhere = refocus
             document.addEventListener("click", () => {
                 focusDialpad();
             });
 
-            // KEYDOWN
             document.addEventListener("keydown", (e) => {
-
-                // prevent repeated number spam
                 if (e.repeat && e.key !== "Backspace") return;
 
-                // DIGITS
                 if (/^[0-9]$/.test(e.key)) {
                     press(e.key);
                     return;
                 }
 
-                // STAR
                 if (e.key === "*") {
                     press("*");
                     return;
                 }
 
-                // HASH
                 if (e.key === "#") {
                     press("#");
                     return;
                 }
 
-                // ENTER => CALL
                 if (e.key === "Enter") {
-
                     e.preventDefault();
 
                     if (number.length === 10) {
@@ -1513,34 +1461,24 @@
                     } else {
                         alert("Enter valid 10-digit number");
                     }
-
                     return;
                 }
 
-                // BACKSPACE
                 if (e.key === "Backspace") {
-
                     e.preventDefault();
 
-                    // prevent repeat backspace spam
                     if (e.repeat) return;
 
-                    // start hold timer
                     backspaceStart = Date.now();
-
-                    // remove one digit immediately
                     removeNumber();
                 }
             });
 
-            // KEYUP
             document.addEventListener("keyup", (e) => {
-
                 if (e.key !== "Backspace") return;
 
                 const holdDuration = Date.now() - backspaceStart;
 
-                // HOLD > 500ms => clear all
                 if (holdDuration >= 500) {
                     number = "";
                     updateDisplay();
@@ -1572,7 +1510,6 @@
                 alert("Enter valid 10-digit number");
                 return;
             }
-
             const target = "+91" + number;
 
             try {
@@ -1621,6 +1558,14 @@
 
             showCallScreen("Connecting...");
             await startWebRTC(false);
+
+            const audio = document.getElementById("remoteAudio");
+
+            try {
+                await audio.play();
+            } catch (e) {
+                console.log(e);
+            }
         };
 
         window.rejectCall = () => {
@@ -1634,19 +1579,25 @@
         };
 
         window.endCall = async () => {
+            if (CALL_STATE === "IDLE") return;
+
+            CALL_STATE = "IDLE";
+
             socket.emit("end-call", { to: currentCallUser, from: myNumber });
 
             const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
 
-            await saveCallLog(myNumber, currentCallUser, duration);
-
-            loadCallHistory(myNumber);
+            if (currentCallUser) {
+                await saveCallLog(myNumber, currentCallUser, duration);
+            }
 
             cleanupCall();
             stopTimer();
-            resetUI();
+            document.getElementById('status').innerText = "Call Ended";
 
-            CALL_STATE = "IDLE";
+            setTimeout(() => {
+                resetUI();
+            }, 200);
         };
 
         window.toggleMute = () => {
@@ -1730,10 +1681,17 @@
                     peer.addTrack(track, localStream);
                 });
 
-                peer.ontrack = (event) => {
+                peer.ontrack = async (event) => {
                     const audio = document.getElementById("remoteAudio");
                     audio.srcObject = event.streams[0];
-                    audio.play().catch(() => { });
+                    // audio.play().catch(() => { });
+                    audio.volume = 1;
+
+                    try {
+                        await audio.play();
+                    } catch (err) {
+                        console.log(err);
+                    }
                 };
 
                 peer.onicecandidate = (event) => {
@@ -1752,11 +1710,15 @@
                     }
 
                     if (
-                        CALL_STATE === "IN_CALL" &&
-                        (peer.connectionState === "disconnected" ||
+                        CALL_STATE !== "IDLE" &&
+                        (peer.connectionState === "closed" ||
                             peer.connectionState === "failed")
                     ) {
-                        endCall();
+                        cleanupCall();
+                        stopTimer();
+                        resetUI();
+
+                        CALL_STATE = "IDLE";
                     }
                 };
 
