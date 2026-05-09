@@ -1034,6 +1034,7 @@
         let socket, myNumber, currentCallUser, SESSION_ID = crypto.randomUUID(), number = "";
         let callStartTime, callSeconds, callTimerInterval, caller;
         let peer, localStream, iceQueue = [], isRemoteSet = false;
+        let isMuted = false;
         let CALL_STATE = "IDLE"; // IDLE, CALLING, RINGING, IN_CALL
 
         const deleteBtn = document.getElementById("deleteBtn");
@@ -1076,10 +1077,6 @@
                 credential: "vT7VrVzMo+z+EFza",
             }
         ];
-
-        // window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        // size: 'invisible'
-        // });
 
         /* ---- LOGIN ---- */
         window.sendOTP = () => {
@@ -1325,6 +1322,14 @@
                 await handleAnswer(answer);
             });
 
+            socket.on("remote-mute-state", (data) => {
+                const indicator = document.getElementById("remoteMuteIndicator");
+
+                if (!indicator) return;
+
+                indicator.style.display = data.muted ? "block" : "none";
+            });
+
             socket.on("ice-candidate", async (candidate) => {
                 const ice = new RTCIceCandidate(candidate);
 
@@ -1515,6 +1520,32 @@
             CALL_STATE = "IDLE";
         };
 
+        window.toggleMute = () => {
+            if (!localStream) return;
+
+            const audioTrack = localStream.getAudioTracks()[0];
+
+            if (!audioTrack) return;
+
+            isMuted = !isMuted;
+            audioTrack.enabled = !isMuted;
+            const muteBtn = document.getElementById("muteBtn");
+
+            if (isMuted) {
+                muteBtn.style.background = "#ef4444";
+                document.querySelector("#muteBtn svg").style.color = "white";
+            } else {
+                muteBtn.style.background = "";
+                document.querySelector("#muteBtn svg").style.color = "var(--color-text-muted)";
+            }
+
+            // SEND MUTE STATE
+            socket.emit("mute-state-changed", {
+                to: currentCallUser,
+                muted: isMuted
+            });
+        };
+
         /* ---- WEBRTC ---- */
         async function startWebRTC(isCaller) {
             if (peer) cleanupCall();
@@ -1621,6 +1652,19 @@
 
             currentCallUser = null;
             caller = null;
+
+            isMuted = false;
+            const muteBtn = document.getElementById("muteBtn");
+            const remoteIndicator = document.getElementById("remoteMuteIndicator");
+
+            if (muteBtn) {
+                muteBtn.style.background = "";
+                document.querySelector("#muteBtn svg").style.color = "var(--color-text-muted)";
+            }
+
+            if (remoteIndicator) {
+                remoteIndicator.style.display = "none";
+            }
         }
 
         /* ---- UI ---- */
