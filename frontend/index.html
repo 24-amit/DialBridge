@@ -149,6 +149,16 @@
             transition: transform var(--transition), box-shadow var(--transition);
         }
 
+        .otp-demo-box {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #fff3cd;
+            color: #856404;
+            text-align: center;
+            font-size: 14px;
+        }
+
         #login .login-btn:hover {
             transform: translateY(-1px);
             box-shadow: 0 6px 20px oklch(from #764ba2 l c h / 0.35);
@@ -889,6 +899,9 @@
         </div>
 
         <div id="otpBox" class="hidden">
+            <div class="otp-demo-box">
+                Development Mode: Use OTP <b>123456</b>
+            </div>
             <input type="tel" id="otp" placeholder="Enter OTP" inputmode="numeric" autocomplete="one-time-code"
                 autofocus>
             <button class="login-btn" onclick="verifyOTP()">Verify OTP</button>
