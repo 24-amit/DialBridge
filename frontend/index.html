@@ -960,36 +960,36 @@
 
                         <!-- Keypad -->
                         <div class="keypad">
-                            <div class="key" ontouchstart="press('1')" onclick="press('1')"><span
-                                    class="key-digit">1</span><span class="key-alpha">&nbsp;</span></div>
-                            <div class="key" ontouchstart="press('2')" onclick="press('2')"><span
-                                    class="key-digit">2</span><span class="key-alpha">ABC</span></div>
-                            <div class="key" ontouchstart="press('3')" onclick="press('3')"><span
-                                    class="key-digit">3</span><span class="key-alpha">DEF</span></div>
-                            <div class="key" ontouchstart="press('4')" onclick="press('4')"><span
-                                    class="key-digit">4</span><span class="key-alpha">GHI</span></div>
-                            <div class="key" ontouchstart="press('5')" onclick="press('5')"><span
-                                    class="key-digit">5</span><span class="key-alpha">JKL</span></div>
-                            <div class="key" ontouchstart="press('6')" onclick="press('6')"><span
-                                    class="key-digit">6</span><span class="key-alpha">MNO</span></div>
-                            <div class="key" ontouchstart="press('7')" onclick="press('7')"><span
-                                    class="key-digit">7</span><span class="key-alpha">PQRS</span></div>
-                            <div class="key" ontouchstart="press('8')" onclick="press('8')"><span
-                                    class="key-digit">8</span><span class="key-alpha">TUV</span></div>
-                            <div class="key" ontouchstart="press('9')" onclick="press('9')"><span
-                                    class="key-digit">9</span><span class="key-alpha">WXYZ</span></div>
-                            <div class="key" ontouchstart="press('*')" onclick="press('*')"><span
-                                    class="key-digit">*</span><span class="key-alpha">&nbsp;</span></div>
-                            <div class="key" ontouchstart="press('0')" onclick="press('0')"><span
-                                    class="key-digit">0</span><span class="key-alpha">+</span></div>
-                            <div class="key" ontouchstart="press('#')" onclick="press('#')"><span
-                                    class="key-digit">#</span><span class="key-alpha">&nbsp;</span></div>
+                            <div class="key" onclick="press('1')"><span class="key-digit">1</span><span
+                                    class="key-alpha">&nbsp;</span></div>
+                            <div class="key" onclick="press('2')"><span class="key-digit">2</span><span
+                                    class="key-alpha">ABC</span></div>
+                            <div class="key" onclick="press('3')"><span class="key-digit">3</span><span
+                                    class="key-alpha">DEF</span></div>
+                            <div class="key" onclick="press('4')"><span class="key-digit">4</span><span
+                                    class="key-alpha">GHI</span></div>
+                            <div class="key" onclick="press('5')"><span class="key-digit">5</span><span
+                                    class="key-alpha">JKL</span></div>
+                            <div class="key" onclick="press('6')"><span class="key-digit">6</span><span
+                                    class="key-alpha">MNO</span></div>
+                            <div class="key" onclick="press('7')"><span class="key-digit">7</span><span
+                                    class="key-alpha">PQRS</span></div>
+                            <div class="key" onclick="press('8')"><span class="key-digit">8</span><span
+                                    class="key-alpha">TUV</span></div>
+                            <div class="key" onclick="press('9')"><span class="key-digit">9</span><span
+                                    class="key-alpha">WXYZ</span></div>
+                            <div class="key" onclick="press('*')"><span class="key-digit">*</span><span
+                                    class="key-alpha">&nbsp;</span></div>
+                            <div class="key" onclick="press('0')"><span class="key-digit">0</span><span
+                                    class="key-alpha">+</span></div>
+                            <div class="key" onclick="press('#')"><span class="key-digit">#</span><span
+                                    class="key-alpha">&nbsp;</span></div>
                         </div>
 
                         <!-- Call + Delete -->
                         <div class="action-row">
                             <!-- Delete -->
-                            <button class="del-btn" id="deleteBtn" onclick="removeNumber()" aria-label="Delete digit">
+                            <button class="del-btn" id="deleteBtn" aria-label="Delete digit">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round"
                                     style="color:var(--color-text-muted)">
@@ -1580,6 +1580,12 @@
             updateDisplay();
         };
 
+        deleteBtn.addEventListener("click", () => {
+            if (!isHolding) {
+                removeNumber();
+            }
+        });
+
         // DIALPAD KEYBOARD CONTROL
         let backspaceStart = 0;
 
@@ -1975,7 +1981,7 @@
 
             generateAvatar(user);
 
-            document.getElementById('callUser').innerText = "+91 " + formatPhone(currentCallUser);
+            document.getElementById('callUser').innerText = "+91 " + formatPhone(user);
 
             document.getElementById("remoteMuteIndicator").style.display = "none";
         }
