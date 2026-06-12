@@ -25,6 +25,8 @@ app.get("/", (req, res) => {
 
 const onlineUsers = new Map();
 
+const users = {};
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
