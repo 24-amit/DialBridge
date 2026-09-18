@@ -16,17 +16,7 @@
 <body>
     <!-- LOGIN -->
     <div id="login">
-
-        <a href="apk/DialBridge.apk" download class="install-apk-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 16V4m0 12l-4-4m4 4l4-4M5 20h14" />
-            </svg>
-            Download DialBridge APK
-        </a>
-
-        <h2>DialBridge Login</h2>
+        <h1 class="login-title">DialBridge Login</h1>
 
         <div class="login-box">
             <input type="tel" id="phone" placeholder="Enter 10-digit number" maxlength="10" inputmode="numeric"
@@ -45,45 +35,44 @@
 
         <div id="recaptcha-container"></div>
         <p id="msg"></p>
+
+        <a href="apk/DialBridge.apk" download class="install-apk-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 16V4m0 12l-4-4m4 4l4-4M5 20h14" />
+            </svg>
+            Download DialBridge APK
+        </a>
     </div>
 
     <!-- APP -->
     <div id="app">
         <div class="container">
-            <!-- Sidebar -->
+            <!-- Header -->
             <div class="header">
                 <h2>DialBridge</h2>
                 <p id="userLabel"></p>
-                <div style="position:absolute; left:15px; top:15px;">
-                    <button onclick="logout()" style="
-        padding:6px 10px;
-        border-radius:8px;
-        background:#ef4444;
-        color:white;
-        font-size:12px;
-        font-weight:600;
-    ">
-                        Logout
-                    </button>
-                </div>
+                <button onclick="logout()" class="logout-btn">
+                    Logout
+                </button>
             </div>
 
             <!-- Main -->
             <div class="main">
                 <!-- Dialer -->
                 <div id="dialer" class="card">
+                    <!-- Segmented Tab Switcher -->
                     <div class="tab-switch">
-                        <label>
-                            <input type="radio" name="tab" value="dialpad" checked onclick="switchTab('dialpad')">
-                            Dialpad
-                        </label>
-                        <label>
-                            <input type="radio" name="tab" value="history" onclick="switchTab('history')">
-                            Recent
-                        </label>
+                        <div class="segmented-control" role="tablist" aria-label="Views">
+                            <button type="button" role="tab" class="tab-btn active" data-tab="dialpad"
+                                aria-selected="true" onclick="switchTab('dialpad')">Dialpad</button>
+                            <button type="button" role="tab" class="tab-btn" data-tab="history"
+                                aria-selected="false" onclick="switchTab('history')">Recent</button>
+                        </div>
                     </div>
+
                     <!-- CALL HISTORY -->
-                    <!-- History (scrollable) -->
                     <div class="history" id="historySection">
                         <div class="history-header">Recent</div>
                         <div class="history-list" id="historyList">
@@ -135,9 +124,21 @@
                                     class="key-alpha">&nbsp;</span></div>
                         </div>
 
-                        <!-- Call + Delete -->
+                        <!-- Action Row (3-Column Grid Aligned with Keypad) -->
                         <div class="action-row">
-                            <!-- Delete -->
+                            <!-- Column 1: Empty Spacer -->
+                            <div></div>
+
+                            <!-- Column 2: Make Call (Centered directly under '0') -->
+                            <button class="call-btn" onclick="makeCall()" aria-label="Make call">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path
+                                        d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+                                </svg>
+                            </button>
+
+                            <!-- Column 3: Delete Digit (Aligned under '#') -->
                             <button class="del-btn" id="deleteBtn" aria-label="Delete digit">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round"
@@ -145,15 +146,6 @@
                                     <path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z" />
                                     <line x1="18" y1="9" x2="13" y2="14" />
                                     <line x1="13" y1="9" x2="18" y2="14" />
-                                </svg>
-                            </button>
-
-                            <!-- Call -->
-                            <button class="call-btn" onclick="makeCall()" aria-label="Make call">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <path
-                                        d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
                                 </svg>
                             </button>
                         </div>
@@ -177,8 +169,7 @@
                     <div>
                         <div class="call-name" id="callUser"></div>
                         <div class="call-status" id="status">Ringing...</div>
-                        <div id="remoteMuteIndicator"
-                            style="margin-top:10px; padding:8px 12px; background:#ef4444; color:white; border-radius:10px; font-size:13px; font-weight:600; display:none; ">
+                        <div id="remoteMuteIndicator" class="mute-indicator">
                             Microphone muted</div>
                     </div>
                     <div class="call-actions">

@@ -51,6 +51,12 @@ export function switchTab(tab) {
         history.style.display = "none";
         dialpad.style.display = "flex";
     }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        const isSelected = btn.dataset.tab === tab;
+        btn.classList.toggle('active', isSelected);
+        btn.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+    });
 }
 
 window.switchTab = switchTab;
